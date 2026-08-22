@@ -209,19 +209,36 @@ def analyze_risk(req: AnalysisRequest):
     def build_inference_df(artifact):
         expected_feats = artifact.get('features', []) if artifact else []
         mode_map = {'Road': 'Standard Class', 'Rail': 'Second Class', 'Sea': 'Standard Class', 'Air': 'Same Day'}
+        sched_days = max(1.0, float(lead_time_days))
+        qty = max(1, int(supplier_count))
+        price = max(10.0, float(weight_kg * 0.1))
+        w_score = float(weather_score)
+        g_score = float(geo_score)
+        p_index = float(port_congestion)
+        s_ratio = float(supplier_dep)
+
         row = {
-            'scheduled_shipping_days': max(1.0, float(lead_time_days)),
-            'order_item_quantity': max(1, int(supplier_count)),
-            'product_price': max(10.0, float(weight_kg * 0.1)),
+            'scheduled_shipping_days': sched_days,
+            'order_item_quantity': qty,
+            'product_price': price,
             'shipping_mode': mode_map.get(transport_mode, 'Standard Class'),
             'product_category': 'Industrial Parts',
             'order_region': 'South Asia'
         }
         if 'weather_risk_score' in expected_feats:
-            row['weather_risk_score'] = float(weather_score)
-            row['geopolitical_risk_score'] = float(geo_score)
-            row['port_congestion_index'] = float(port_congestion)
-            row['supplier_dependency_ratio'] = float(supplier_dep)
+            row['weather_risk_score'] = w_score
+            row['geopolitical_risk_score'] = g_score
+            row['port_congestion_index'] = p_index
+            row['supplier_dependency_ratio'] = s_ratio
+
+        if 'order_value' in expected_feats:
+            row['order_value'] = qty * price
+            row['scheduled_density'] = qty / (sched_days + 0.1)
+            row['weather_x_port'] = w_score * p_index
+            row['weather_x_geo'] = w_score * g_score
+            row['supplier_x_port'] = s_ratio * p_index
+            row['scheduled_x_weather'] = sched_days * w_score
+
         return pd.DataFrame([row])
 
     # 1. Delay Model Inference

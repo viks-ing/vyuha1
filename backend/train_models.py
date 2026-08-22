@@ -1,7 +1,7 @@
 """
-Vyuha ML Real-Data Training & Evaluation Pipeline
-=================================================
-1. DataCo Delay Model (GradientBoostingRegressor) -> delay_model.joblib
+Vyuha ML Real-Data Training Pipeline
+====================================
+1. DataCo Delay Model (Tuned GradientBoostingRegressor with Pre-Disruption Feature Engineering) -> delay_model.joblib
 2. DataCo Logistics Cost Estimator (GradientBoostingRegressor) -> cost_model.joblib
 3. Multi-Factor Real-Data Risk Scorer Engine (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
 """
@@ -38,7 +38,25 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
 DATACO_PATH = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
 
-def get_preprocessor():
+def add_delay_engineered_features(df_in):
+    df = df_in.copy()
+    df['order_value'] = df['order_item_quantity'] * df['product_price']
+    df['scheduled_density'] = df['order_item_quantity'] / (df['scheduled_shipping_days'] + 0.1)
+    df['weather_x_port'] = df['weather_risk_score'] * df['port_congestion_index']
+    df['weather_x_geo'] = df['weather_risk_score'] * df['geopolitical_risk_score']
+    df['supplier_x_port'] = df['supplier_dependency_ratio'] * df['port_congestion_index']
+    df['scheduled_x_weather'] = df['scheduled_shipping_days'] * df['weather_risk_score']
+    return df
+
+def get_delay_preprocessor(feature_cols):
+    num_cols = [c for c in feature_cols if c not in ['shipping_mode', 'product_category', 'order_region']]
+    cat_cols = ['shipping_mode', 'product_category', 'order_region']
+    return ColumnTransformer(transformers=[
+        ('num', StandardScaler(), num_cols),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+    ])
+
+def get_base_preprocessor():
     num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
     cat_cols = ['shipping_mode', 'product_category', 'order_region']
     return ColumnTransformer(transformers=[
@@ -50,7 +68,8 @@ def train_dataco_delay_and_cost():
     if not os.path.exists(DATACO_PATH):
         raise FileNotFoundError(f"DataCo dataset not found at {DATACO_PATH}")
     
-    df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+    raw_df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+    df = add_delay_engineered_features(raw_df)
 
     mode_rates = {
         'Same Day': 0.15,
@@ -63,48 +82,57 @@ def train_dataco_delay_and_cost():
         axis=1
     )
 
-    feature_cols = [
+    # 1. ENHANCED DELAY PREDICTION MODEL
+    delay_feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price', 'order_value', 'scheduled_density',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio',
+        'weather_x_port', 'weather_x_geo', 'supplier_x_port', 'scheduled_x_weather',
+        'shipping_mode', 'product_category', 'order_region'
+    ]
+    X_del = df[delay_feature_cols]
+    y_delay = df['delay_days']
+    X_tr_d, X_te_d, y_tr_d, y_te_d = train_test_split(X_del, y_delay, test_size=0.2, random_state=42)
+
+    tuned_gbr = GradientBoostingRegressor(
+        n_estimators=250, learning_rate=0.04, max_depth=5, subsample=0.85, random_state=42
+    )
+
+    delay_pipeline = Pipeline([
+        ('preprocessor', get_delay_preprocessor(delay_feature_cols)),
+        ('regressor', tuned_gbr)
+    ])
+
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_r2_scores = cross_val_score(delay_pipeline, X_tr_d, y_tr_d, cv=kf, scoring='r2')
+    
+    delay_pipeline.fit(X_tr_d, y_tr_d)
+    tr_pred_del = delay_pipeline.predict(X_tr_d)
+    te_pred_del = delay_pipeline.predict(X_te_d)
+
+    mean_delay_baseline = np.full_like(y_te_d, fill_value=y_tr_d.mean())
+    baseline_mae_delay = mean_absolute_error(y_te_d, mean_delay_baseline)
+
+    print("\n[MODEL 1 — ENHANCED DELAY PREDICTION MODEL]")
+    print(f"  5-Fold CV Mean R²    : {cv_r2_scores.mean():.4f} ± {cv_r2_scores.std():.4f}")
+    print(f"  Train MAE / R²       : {mean_absolute_error(y_tr_d, tr_pred_del):.4f} days | R²: {r2_score(y_tr_d, tr_pred_del):.4f}")
+    print(f"  Test MAE / RMSE / R² : {mean_absolute_error(y_te_d, te_pred_del):.4f} days | RMSE: {np.sqrt(mean_squared_error(y_te_d, te_pred_del)):.4f} days | R²: {r2_score(y_te_d, te_pred_del):.4f}")
+    print(f"  Mean Baseline MAE    : {baseline_mae_delay:.4f} days (Model MAE Improvement: {baseline_mae_delay - mean_absolute_error(y_te_d, te_pred_del):+.4f} days)")
+    print(f"  Generalization Gap   : {r2_score(y_tr_d, tr_pred_del) - r2_score(y_te_d, te_pred_del):.4f}")
+
+    joblib.dump({'regressor': delay_pipeline, 'features': delay_feature_cols}, os.path.join(MODEL_DIR, "delay_model.joblib"))
+
+    # 2. LOGISTICS COST ESTIMATOR MODEL
+    cost_feature_cols = [
         'scheduled_shipping_days', 'order_item_quantity', 'product_price',
         'shipping_mode', 'product_category', 'order_region',
         'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio'
     ]
-    X = df[feature_cols]
-
-    # 1. DELAY PREDICTION MODEL
-    y_delay = df['delay_days']
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y_delay, test_size=0.2, random_state=42)
-
-    delay_pipeline = Pipeline([
-        ('preprocessor', get_preprocessor()),
-        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
-    ])
-
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    cv_r2_scores = cross_val_score(delay_pipeline, X_tr, y_tr, cv=kf, scoring='r2')
-    
-    delay_pipeline.fit(X_tr, y_tr)
-    tr_pred_del = delay_pipeline.predict(X_tr)
-    te_pred_del = delay_pipeline.predict(X_te)
-
-    # Mean Baseline for Delay
-    mean_delay_baseline = np.full_like(y_te, fill_value=y_tr.mean())
-    baseline_mae_delay = mean_absolute_error(y_te, mean_delay_baseline)
-
-    print("\n[MODEL 1 — DELAY PREDICTION MODEL]")
-    print(f"  5-Fold CV Mean R²    : {cv_r2_scores.mean():.4f} ± {cv_r2_scores.std():.4f}")
-    print(f"  Train MAE / R²       : {mean_absolute_error(y_tr, tr_pred_del):.4f} days | R²: {r2_score(y_tr, tr_pred_del):.4f}")
-    print(f"  Test MAE / RMSE / R² : {mean_absolute_error(y_te, te_pred_del):.4f} days | RMSE: {np.sqrt(mean_squared_error(y_te, te_pred_del)):.4f} days | R²: {r2_score(y_te, te_pred_del):.4f}")
-    print(f"  Mean Baseline MAE    : {baseline_mae_delay:.4f} days (Model MAE Improvement: {baseline_mae_delay - mean_absolute_error(y_te, te_pred_del):+.4f} days)")
-    print(f"  Generalization Gap   : {r2_score(y_tr, tr_pred_del) - r2_score(y_te, te_pred_del):.4f}")
-
-    joblib.dump({'regressor': delay_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "delay_model.joblib"))
-
-    # 2. LOGISTICS COST ESTIMATOR MODEL
+    X_c = df[cost_feature_cols]
     y_cost = df['shipping_cost']
-    X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X, y_cost, test_size=0.2, random_state=42)
+    X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X_c, y_cost, test_size=0.2, random_state=42)
 
     cost_pipeline = Pipeline([
-        ('preprocessor', get_preprocessor()),
+        ('preprocessor', get_base_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
 
@@ -124,7 +152,7 @@ def train_dataco_delay_and_cost():
     print(f"  Mean Baseline MAE    : INR {baseline_mae_cost:.2f} (Model MAE Improvement: INR {baseline_mae_cost - mean_absolute_error(y_te_c, te_pred_cost):+.2f})")
     print(f"  Classification Note  : Scenario-Based Cost Estimator (Derived freight rate contract)")
 
-    joblib.dump({'regressor': cost_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
+    joblib.dump({'regressor': cost_pipeline, 'features': cost_feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
 def train_genuine_real_data_risk_engine():
     print("\n[MODEL 3 — VYUHA REAL-DATA ML RISK ENGINE]")
@@ -142,7 +170,7 @@ def train_genuine_real_data_risk_engine():
     calibrated_gbc = CalibratedClassifierCV(estimator=base_gbc, cv=5, method='sigmoid')
 
     risk_pipeline = Pipeline([
-        ('preprocessor', get_preprocessor()),
+        ('preprocessor', get_base_preprocessor()),
         ('classifier', calibrated_gbc)
     ])
 
@@ -205,8 +233,8 @@ def train_genuine_real_data_risk_engine():
 
 if __name__ == "__main__":
     print("==================================================")
-    print(" VYUHA ML QUALITY RECTIFICATION TRAINING PIPELINE ")
+    print(" VYUHA ML DELAY MODEL ENHANCEMENT TRAINING PIPELINE ")
     print("==================================================")
     train_dataco_delay_and_cost()
     train_genuine_real_data_risk_engine()
-    print("\n✅ All 3 Models Serialized & Validated Successfully!")
+    print("\n✅ All Models Serialized & Validated Successfully!")
