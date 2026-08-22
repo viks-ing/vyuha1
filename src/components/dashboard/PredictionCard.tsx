@@ -23,26 +23,26 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   badgeVariant = 'danger',
 }) => {
   const badgeStyles = {
-    danger: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-    warning: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    info: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-    success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    danger: 'bg-rose-50 text-rose-700 border-rose-200',
+    warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    info: 'bg-sky-50 text-sky-700 border-sky-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   };
 
   return (
     <Card className="relative overflow-hidden group">
       <div className="flex items-start justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           {title}
         </span>
-        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-sky-400 group-hover:text-sky-300 group-hover:scale-105 transition-all">
+        <div className="p-2 rounded-xl bg-slate-100 border border-slate-200 text-sky-600 group-hover:scale-105 transition-all">
           {icon}
         </div>
       </div>
 
       <div className="mt-3 space-y-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+          <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             {value}
           </span>
           {badgeText && (
@@ -56,12 +56,12 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
             </span>
           )}
         </div>
-        <p className="text-xs text-slate-400 font-medium">{supportingText}</p>
+        <p className="text-xs text-slate-600 font-medium">{supportingText}</p>
       </div>
 
       {trendText && (
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-          <span className="text-slate-400 truncate">{trendText}</span>
+        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+          <span className="text-slate-500">{trendText}</span>
         </div>
       )}
     </Card>

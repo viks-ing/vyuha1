@@ -3,20 +3,25 @@ import { cn } from '../../lib/utils';
 import { AlertSeverity } from '../../types';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: AlertSeverity | 'default' | 'success' | 'secondary' | 'outline' | 'info';
+  variant?: AlertSeverity | 'default' | 'success' | 'secondary' | 'outline' | 'info' | 'high' | 'medium' | 'low' | 'critical';
+  size?: 'sm' | 'md' | 'lg' | string;
 }
 
 export const Badge: React.FC<BadgeProps> = ({ className, variant = 'default', children, ...props }) => {
   const styles: Record<string, string> = {
-    Critical: 'bg-rose-500/15 text-rose-400 border-rose-500/30 font-semibold',
-    High: 'bg-amber-500/15 text-amber-400 border-amber-500/30 font-semibold',
-    Medium: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-    Low: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    default: 'bg-slate-800 text-slate-300 border-slate-700',
-    success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    secondary: 'bg-slate-800/80 text-slate-400 border-slate-700/60',
-    outline: 'bg-transparent text-slate-300 border-slate-700',
-    info: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+    Critical: 'bg-rose-50 text-rose-700 border-rose-200 font-semibold',
+    critical: 'bg-rose-50 text-rose-700 border-rose-200 font-semibold',
+    High: 'bg-amber-50 text-amber-700 border-amber-200 font-semibold',
+    high: 'bg-amber-50 text-amber-700 border-amber-200 font-semibold',
+    Medium: 'bg-sky-50 text-sky-700 border-sky-200 font-medium',
+    medium: 'bg-sky-50 text-sky-700 border-sky-200 font-medium',
+    Low: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-medium',
+    low: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-medium',
+    default: 'bg-slate-100 text-slate-700 border-slate-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    secondary: 'bg-slate-100 text-slate-600 border-slate-200',
+    outline: 'bg-transparent text-slate-700 border-slate-300',
+    info: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   };
 
   return (

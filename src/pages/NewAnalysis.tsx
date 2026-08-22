@@ -49,20 +49,20 @@ export const NewAnalysis: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
+        <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 mb-1">
           <Zap className="w-4 h-4" />
           <span>Predictive AI Engine</span>
         </div>
-        <h2 className="text-2xl font-bold text-slate-100">New Supply Chain Analysis</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-slate-900">New Supply Chain Analysis</h2>
+        <p className="text-sm text-slate-600">
           Analyze your supply chain against current economic, logistics, infrastructure, and environmental conditions.
         </p>
       </div>
 
       {/* Configuration Card */}
-      <Card className="border-sky-500/20">
+      <Card className="border-sky-200">
         <CardHeader>
-          <CardTitle className="text-lg font-bold">Analysis Configuration</CardTitle>
+          <CardTitle className="text-lg font-bold text-slate-900">Analysis Configuration</CardTitle>
           <CardDescription>Configure simulation inputs and target timeframes for ML risk projection</CardDescription>
         </CardHeader>
 
@@ -123,11 +123,11 @@ export const NewAnalysis: React.FC = () => {
 
       {/* Loading State Banner */}
       {isRunning && (
-        <Card className="border-sky-500/30 bg-slate-900/90 text-center py-12 space-y-4">
-          <RefreshCw className="w-10 h-10 animate-spin text-sky-400 mx-auto" />
+        <Card className="border-sky-300 bg-white text-center py-12 space-y-4 shadow-md">
+          <RefreshCw className="w-10 h-10 animate-spin text-sky-600 mx-auto" />
           <div>
-            <h3 className="text-lg font-bold text-slate-100">Running ML Supply Chain Prediction Model</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+            <h3 className="text-lg font-bold text-slate-900">Running ML Supply Chain Prediction Model</h3>
+            <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1">
               Correlating IMD weather satellite data, freight tariff indices, and road transit speed baselines...
             </p>
           </div>
@@ -136,12 +136,12 @@ export const NewAnalysis: React.FC = () => {
 
       {/* Simulation Result Output Display */}
       {result && !isRunning && (
-        <Card className="border-emerald-500/30 bg-slate-900/95 animate-in fade-in slide-in-from-bottom-3 duration-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-800">
+        <Card className="border-emerald-300 bg-white animate-in fade-in slide-in-from-bottom-3 duration-500 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-200">
             <div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <CardTitle className="text-lg font-bold text-slate-100">Analysis Results Ready</CardTitle>
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <CardTitle className="text-lg font-bold text-slate-900">Analysis Results Ready</CardTitle>
               </div>
               <CardDescription className="mt-0.5">Ran for "{form.analysisName}"</CardDescription>
             </div>
@@ -150,31 +150,31 @@ export const NewAnalysis: React.FC = () => {
 
           <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1">
-                <p className="text-xs font-semibold text-slate-400 uppercase">Predicted Risk Score</p>
-                <p className="text-3xl font-extrabold text-amber-400">{result.score} <span className="text-xs text-slate-500">/100</span></p>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase">Predicted Risk Score</p>
+                <p className="text-3xl font-extrabold text-amber-700">{result.score} <span className="text-xs text-slate-400">/100</span></p>
                 <Badge variant="High">{result.status}</Badge>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1">
-                <p className="text-xs font-semibold text-slate-400 uppercase">Projected Delay</p>
-                <p className="text-3xl font-extrabold text-slate-100">{result.expectedDelay} Days</p>
-                <p className="text-[11px] text-amber-400">+2.2 days over baseline</p>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase">Projected Delay</p>
+                <p className="text-3xl font-extrabold text-slate-900">{result.expectedDelay} Days</p>
+                <p className="text-[11px] text-amber-700 font-medium">+2.2 days over baseline</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1">
-                <p className="text-xs font-semibold text-slate-400 uppercase">Projected Addl. Cost</p>
-                <p className="text-3xl font-extrabold text-slate-100">{formatINR(result.expectedCost)}</p>
-                <p className="text-[11px] text-rose-400">+12% freight surge</p>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase">Projected Addl. Cost</p>
+                <p className="text-3xl font-extrabold text-slate-900">{formatINR(result.expectedCost)}</p>
+                <p className="text-[11px] text-rose-700 font-medium">+12% freight surge</p>
               </div>
             </div>
 
-            <div className="space-y-2 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
-              <h4 className="text-xs font-bold text-sky-400 uppercase tracking-wider">AI Mitigation Action Items</h4>
+            <div className="space-y-2 bg-sky-50/50 p-4 rounded-xl border border-sky-100">
+              <h4 className="text-xs font-bold text-sky-700 uppercase tracking-wider">AI Mitigation Action Items</h4>
               <ul className="space-y-2">
                 {result.recommendations.map((rec: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-200">
-                    <ArrowRight className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />
+                  <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-800">
+                    <ArrowRight className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
                     <span>{rec}</span>
                   </li>
                 ))}

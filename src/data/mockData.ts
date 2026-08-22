@@ -13,26 +13,26 @@ import {
 
 export const defaultCompanyData: CompanyData = {
   info: {
-    companyName: 'Apex MotorWorks Ltd',
-    industry: 'Automotive',
+    companyName: '',
+    industry: 'Manufacturing',
     businessType: 'B2B',
     companySize: 'Medium',
-    location: 'Pune, Maharashtra',
+    location: '',
   },
   profile: {
-    supplierCount: 24,
+    supplierCount: 0,
     primaryTransportMode: 'Road',
-    averageLeadTimeDays: 8.4,
-    deliveryDistanceKm: 420,
+    averageLeadTimeDays: 0,
+    deliveryDistanceKm: 0,
   },
   constraints: {
-    maxAcceptableDelayDays: 5,
-    maxAdditionalBudget: 50000,
+    maxAcceptableDelayDays: 0,
+    maxAdditionalBudget: 0,
     riskTolerance: 'Medium',
   },
-  isOnboarded: true,
-  onboardingStep: 3,
-  updatedAt: '2026-08-22',
+  isOnboarded: false,
+  onboardingStep: 1,
+  updatedAt: new Date().toISOString().split('T')[0],
 };
 
 export const mockRiskScoreData: RiskScoreData = {

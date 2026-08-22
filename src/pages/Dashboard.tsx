@@ -32,24 +32,24 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header Greeting Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI Risk Intelligence Feed Active</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Good Morning 👋
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Here's your current supply-chain risk overview for{' '}
-            <strong className="text-slate-200">{company.info.companyName}</strong>.
+            <strong className="text-slate-900">{company.info.companyName || 'Enterprise'}</strong>.
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start md:self-auto">
-          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
-            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <span>{currentDate}</span>
           </div>
           <Button

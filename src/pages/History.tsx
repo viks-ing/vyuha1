@@ -28,12 +28,12 @@ export const History: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 mb-1">
             <HistoryIcon className="w-4 h-4" />
             <span>Audit Trail & Historical Benchmarks</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-100">Analysis History</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-2xl font-bold text-slate-900">Analysis History</h2>
+          <p className="text-sm text-slate-600">
             Review past risk projections, scenario runs, and historical supply chain vulnerability scores.
           </p>
         </div>
@@ -44,7 +44,7 @@ export const History: React.FC = () => {
       </div>
 
       {/* Filter and Search Toolbar Card */}
-      <Card className="border-slate-800">
+      <Card className="border-slate-200">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
             <div className="w-full sm:w-80">
@@ -52,7 +52,7 @@ export const History: React.FC = () => {
                 placeholder="Search analysis name or scenario..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<Search className="w-4 h-4" />}
+                leftIcon={<Search className="w-4 h-4 text-slate-400" />}
               />
             </div>
 
@@ -73,7 +73,7 @@ export const History: React.FC = () => {
       </Card>
 
       {/* Table Display Card */}
-      <Card className="border-slate-800">
+      <Card className="border-slate-200">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -99,17 +99,17 @@ export const History: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div>
-                        <p className="font-bold text-slate-100 text-sm">{item.analysisName}</p>
-                        <p className="text-xs text-slate-400">{item.primaryScenario}</p>
+                        <p className="font-bold text-slate-900 text-sm">{item.analysisName}</p>
+                        <p className="text-xs text-slate-500">{item.primaryScenario}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-300 font-medium">{item.date}</TableCell>
+                    <TableCell className="text-xs text-slate-700 font-medium">{item.date}</TableCell>
                     <TableCell>
-                      <span className="font-extrabold text-amber-400 text-sm">{item.riskScore}</span>
-                      <span className="text-[10px] text-slate-500"> /100</span>
+                      <span className="font-extrabold text-amber-700 text-sm">{item.riskScore}</span>
+                      <span className="text-[10px] text-slate-400"> /100</span>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-300 font-medium">{item.expectedDelayDays} Days</TableCell>
-                    <TableCell className="text-xs text-slate-300 font-medium">{formatINR(item.expectedCost)}</TableCell>
+                    <TableCell className="text-xs text-slate-700 font-medium">{item.expectedDelayDays} Days</TableCell>
+                    <TableCell className="text-xs text-slate-700 font-medium">{formatINR(item.expectedCost)}</TableCell>
                     <TableCell>
                       <Badge variant={item.status as any}>{item.status}</Badge>
                     </TableCell>

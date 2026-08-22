@@ -46,7 +46,16 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Force onboardingStep to 1 if not fully onboarded or companyName is missing
+        if (!parsed.isOnboarded || !parsed.info?.companyName) {
+          return {
+            ...parsed,
+            isOnboarded: false,
+            onboardingStep: 1,
+          };
+        }
+        return parsed;
       } catch (e) {
         console.error('Failed to parse saved company state:', e);
       }
@@ -110,12 +119,31 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetOnboarding = () => {
-    setCompany({
-      ...defaultCompanyData,
+    const freshState: CompanyData = {
+      info: {
+        companyName: '',
+        industry: 'Manufacturing',
+        businessType: 'B2B',
+        companySize: 'Medium',
+        location: '',
+      },
+      profile: {
+        supplierCount: 0,
+        primaryTransportMode: 'Road',
+        averageLeadTimeDays: 0,
+        deliveryDistanceKm: 0,
+      },
+      constraints: {
+        maxAcceptableDelayDays: 0,
+        maxAdditionalBudget: 0,
+        riskTolerance: 'Medium',
+      },
       isOnboarded: false,
       onboardingStep: 1,
-    });
-    showToast('Onboarding state reset.');
+      updatedAt: new Date().toISOString().split('T')[0],
+    };
+    setCompany(freshState);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(freshState));
   };
 
   const dismissAlert = (id: string) => {

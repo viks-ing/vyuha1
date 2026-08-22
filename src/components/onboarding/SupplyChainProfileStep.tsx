@@ -42,11 +42,11 @@ export const SupplyChainProfileStep: React.FC<Props> = ({ initialData, onNext, o
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-1 mb-6 text-center sm:text-left">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 justify-center sm:justify-start">
-          <Truck className="w-5 h-5 text-sky-400" />
+        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 justify-center sm:justify-start">
+          <Truck className="w-5 h-5 text-sky-600" />
           Step 2: Supply Chain Profile
         </h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-600">
           Specify your operational logistics metrics to baseline risk calculation models.
         </p>
       </div>
@@ -101,7 +101,7 @@ export const SupplyChainProfileStep: React.FC<Props> = ({ initialData, onNext, o
         />
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-slate-800 gap-3">
+      <div className="flex justify-between pt-4 border-t border-slate-200 gap-3">
         <Button type="button" variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>

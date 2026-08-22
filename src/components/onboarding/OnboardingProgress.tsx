@@ -17,9 +17,9 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({ currentS
     <div className="w-full mb-8">
       <div className="flex items-center justify-between max-w-2xl mx-auto relative">
         {/* Connecting line */}
-        <div className="absolute top-5 left-8 right-8 h-0.5 bg-slate-800 -z-0">
+        <div className="absolute top-5 left-8 right-8 h-0.5 bg-slate-200 -z-0">
           <div
-            className="h-full bg-gradient-to-r from-sky-500 to-blue-600 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-sky-600 to-blue-600 transition-all duration-500"
             style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
           />
         </div>
@@ -33,12 +33,12 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({ currentS
             <div key={step.number} className="flex flex-col items-center z-10">
               <div
                 className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 shadow-md',
+                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 shadow-sm',
                   isCompleted
-                    ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                    ? 'bg-emerald-600 text-white shadow-emerald-600/20'
                     : isCurrent
-                    ? 'bg-sky-500 text-white ring-4 ring-sky-500/20 shadow-sky-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-700'
+                    ? 'bg-sky-600 text-white ring-4 ring-sky-500/20 shadow-sky-600/30'
+                    : 'bg-slate-100 text-slate-400 border border-slate-300'
                 )}
               >
                 {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
@@ -47,12 +47,12 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({ currentS
                 <p
                   className={cn(
                     'text-xs font-semibold tracking-wide',
-                    isCurrent ? 'text-sky-400' : isCompleted ? 'text-slate-200' : 'text-slate-500'
+                    isCurrent ? 'text-sky-600 font-bold' : isCompleted ? 'text-slate-700' : 'text-slate-400'
                   )}
                 >
                   Step {step.number}
                 </p>
-                <p className="text-xs text-slate-300 hidden sm:block font-medium">{step.title}</p>
+                <p className="text-xs text-slate-700 hidden sm:block font-medium">{step.title}</p>
               </div>
             </div>
           );

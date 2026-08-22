@@ -8,7 +8,7 @@ export const AppLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased">
       {/* Sidebar Navigation */}
       <Sidebar
         isOpen={mobileSidebarOpen}
@@ -25,7 +25,7 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
 
-        <footer className="border-t border-slate-900 py-4 px-8 text-center text-xs text-slate-400">
+        <footer className="border-t border-slate-200 py-4 px-8 text-center text-xs text-slate-500 bg-white">
           VYUHA Supply Chain Intelligence Platform &copy; 2026. Made for Indian Enterprises.
         </footer>
       </div>

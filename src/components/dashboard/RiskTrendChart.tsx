@@ -18,17 +18,17 @@ interface Props {
 
 export const RiskTrendChart: React.FC<Props> = ({ data }) => {
   return (
-    <Card className="border-slate-800">
+    <Card className="border-slate-200">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-sky-400" />
+            <TrendingUp className="w-5 h-5 text-sky-600" />
             Supply Chain Risk Trend
           </CardTitle>
           <CardDescription>6-Month historical vulnerability trajectory (March – August 2026)</CardDescription>
         </div>
         <div className="text-right">
-          <span className="text-xs text-rose-400 font-bold bg-rose-500/15 px-2.5 py-1 rounded-full border border-rose-500/30">
+          <span className="text-xs text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
             +21 pts overall shift
           </span>
         </div>
@@ -40,24 +40,24 @@ export const RiskTrendChart: React.FC<Props> = ({ data }) => {
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="riskScoreGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0284c7" stopOpacity={0.4} />
+                  <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#0284c7" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.8} />
               <XAxis
                 dataKey="month"
                 stroke="#64748b"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#334155' }}
+                axisLine={{ stroke: '#cbd5e1' }}
               />
               <YAxis
                 stroke="#64748b"
                 fontSize={12}
                 domain={[40, 100]}
                 tickLine={false}
-                axisLine={{ stroke: '#334155' }}
+                axisLine={{ stroke: '#cbd5e1' }}
               />
               <Tooltip
                 contentStyle={{

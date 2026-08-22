@@ -45,11 +45,11 @@ export const BusinessConstraintsStep: React.FC<Props> = ({ initialData, onComple
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-1 mb-6 text-center sm:text-left">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 justify-center sm:justify-start">
-          <ShieldAlert className="w-5 h-5 text-sky-400" />
+        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 justify-center sm:justify-start">
+          <ShieldAlert className="w-5 h-5 text-sky-600" />
           Step 3: Business Constraints & Tolerance
         </h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-600">
           Define risk thresholds and maximum buffer limits for disruption management.
         </p>
       </div>
@@ -93,22 +93,22 @@ export const BusinessConstraintsStep: React.FC<Props> = ({ initialData, onComple
           required
         />
         {formData.maxAdditionalBudget > 0 && (
-          <p className="text-xs text-sky-400 font-medium pt-1">
+          <p className="text-xs text-sky-600 font-medium pt-1">
             Selected Budget Limit: <span className="font-bold">{formatINR(formData.maxAdditionalBudget)}</span>
           </p>
         )}
       </div>
 
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
-        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Summary of Settings</p>
-        <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
-          <li>Delay threshold: <span className="text-slate-200 font-medium">{formData.maxAcceptableDelayDays} Days</span></li>
-          <li>Contingency budget: <span className="text-slate-200 font-medium">{formatINR(formData.maxAdditionalBudget)}</span></li>
-          <li>Tolerance mode: <span className="text-sky-300 font-medium">{formData.riskTolerance}</span></li>
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+        <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Summary of Settings</p>
+        <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+          <li>Delay threshold: <span className="text-slate-900 font-medium">{formData.maxAcceptableDelayDays} Days</span></li>
+          <li>Contingency budget: <span className="text-slate-900 font-medium">{formatINR(formData.maxAdditionalBudget)}</span></li>
+          <li>Tolerance mode: <span className="text-sky-700 font-medium">{formData.riskTolerance}</span></li>
         </ul>
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-slate-800 gap-3">
+      <div className="flex justify-between pt-4 border-t border-slate-200 gap-3">
         <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>

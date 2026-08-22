@@ -46,18 +46,18 @@ export const Settings: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-100">System Preferences & Settings</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-slate-900">System Preferences & Settings</h2>
+        <p className="text-sm text-slate-600">
           Configure alerts, threshold alerts, team notification channels, and account security.
         </p>
       </div>
 
       <div className="space-y-6">
         {/* Account Information Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <User className="w-5 h-5 text-sky-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <User className="w-5 h-5 text-sky-600" />
               Account & User Information
             </CardTitle>
             <CardDescription>Personal details and organizational access credentials</CardDescription>
@@ -114,16 +114,16 @@ export const Settings: React.FC = () => {
         </Card>
 
         {/* Notifications Settings Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Bell className="w-5 h-5 text-amber-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <Bell className="w-5 h-5 text-amber-600" />
               Notification Preferences
             </CardTitle>
             <CardDescription>Control automated risk alerts and summary email dispatches</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4 divide-y divide-slate-800/80">
+          <CardContent className="space-y-4 divide-y divide-slate-100">
             <Switch
               label="Risk Alerts"
               description="Receive notifications whenever an individual risk factor score increases by >5 points."
@@ -155,10 +155,10 @@ export const Settings: React.FC = () => {
         </Card>
 
         {/* Dashboard Preferences Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-emerald-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <Sliders className="w-5 h-5 text-emerald-600" />
               Dashboard & Threshold Preferences
             </CardTitle>
             <CardDescription>Customize default view models and warning trigger sensitivity</CardDescription>
@@ -195,10 +195,10 @@ export const Settings: React.FC = () => {
         </Card>
 
         {/* Security / Password Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Key className="w-5 h-5 text-rose-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <Key className="w-5 h-5 text-rose-600" />
               Password & Security
             </CardTitle>
             <CardDescription>Update your account access password</CardDescription>

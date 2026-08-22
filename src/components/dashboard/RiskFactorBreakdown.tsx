@@ -19,11 +19,11 @@ interface Props {
 
 export const RiskFactorBreakdown: React.FC<Props> = ({ data }) => {
   return (
-    <Card className="border-slate-800">
+    <Card className="border-slate-200">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-amber-400" />
+            <BarChart3 className="w-5 h-5 text-amber-600" />
             Risk Factor Breakdown vs Industry Benchmark
           </CardTitle>
           <CardDescription>Comparison of your risk exposure against regional enterprise benchmarks</CardDescription>
@@ -38,23 +38,24 @@ export const RiskFactorBreakdown: React.FC<Props> = ({ data }) => {
               layout="vertical"
               margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} opacity={0.6} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} opacity={0.8} />
               <XAxis type="number" domain={[0, 100]} stroke="#64748b" fontSize={12} tickLine={false} />
               <YAxis
                 type="category"
                 dataKey="factor"
-                stroke="#94a3b8"
+                stroke="#475569"
                 fontSize={12}
                 tickLine={false}
                 width={100}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#0f172a',
-                  borderColor: '#334155',
+                  backgroundColor: '#ffffff',
+                  borderColor: '#cbd5e1',
                   borderRadius: '0.75rem',
-                  color: '#f8fafc',
+                  color: '#0f172a',
                   fontSize: '12px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                 }}
               />
               <Legend

@@ -45,18 +45,18 @@ export const Profile: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-100">Company & Supply Chain Profile</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-slate-900">Company & Supply Chain Profile</h2>
+        <p className="text-sm text-slate-600">
           Manage your organizational identity and operational logistics baselines.
         </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Section 1: Company Information Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-sky-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <Building2 className="w-5 h-5 text-sky-600" />
               Company Information
             </CardTitle>
             <CardDescription>General enterprise identification and sector classification</CardDescription>
@@ -95,7 +95,7 @@ export const Profile: React.FC = () => {
               />
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Headquarters Location
                 </label>
                 <div className="relative">
@@ -105,7 +105,7 @@ export const Profile: React.FC = () => {
                     list="profile-cities"
                     value={infoState.location}
                     onChange={(e) => setInfoState({ ...infoState, location: e.target.value })}
-                    className="flex h-10 w-full rounded-lg border border-slate-700/80 bg-slate-900/90 pl-10 pr-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                    className="flex h-10 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                   />
                   <datalist id="profile-cities">
                     {indianCities.map((city) => (
@@ -119,10 +119,10 @@ export const Profile: React.FC = () => {
         </Card>
 
         {/* Section 2: Supply Chain Parameters Card */}
-        <Card className="border-slate-800">
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Truck className="w-5 h-5 text-emerald-400" />
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+              <Truck className="w-5 h-5 text-emerald-600" />
               Supply Chain Operational Metrics
             </CardTitle>
             <CardDescription>Logistics constraints and transit baseline settings</CardDescription>
