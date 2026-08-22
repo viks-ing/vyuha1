@@ -50,7 +50,9 @@ try:
     if os.path.exists(cost_path):
         cost_artifact = joblib.load(cost_path)
 
-    risk_path = os.path.join(MODEL_DIR, "risk_model.joblib")
+    risk_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
+    if not os.path.exists(risk_path):
+        risk_path = os.path.join(MODEL_DIR, "risk_model.joblib")
     if os.path.exists(risk_path):
         risk_artifact = joblib.load(risk_path)
     print("Vyuha ML Trained Models Loaded Successfully into FastAPI Backend!")
@@ -248,19 +250,23 @@ def analyze_risk(req: AnalysisRequest):
         except Exception as err:
             print("Cost model inference error:", err)
 
-    # 3. Disruption Risk Model Inference
-    if risk_artifact:
+    # 3. Dedicated Real-Data ML Risk Scorer Inference
+    if risk_artifact and "regressor" in risk_artifact:
         try:
-            df_risk_in = build_inference_df(risk_artifact)
-            if 'regressor' in risk_artifact:
-                raw_pred = risk_artifact['regressor'].predict(df_risk_in)[0]
-                calculated_risk = int(np.clip(round(float(raw_pred) * 15.0), 5, 98))
-            elif 'classifier' in risk_artifact:
-                pred_proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
-                calculated_risk = int(round(float(pred_proba[-1] * 100)))
-                calculated_risk = int(np.clip(calculated_risk, 5, 98))
+            df_risk_in = pd.DataFrame([{
+                'distance_km': float(distance_km),
+                'lead_time_days': float(lead_time_days),
+                'supplier_count': int(supplier_count),
+                'transport_mode': transport_mode,
+                'weather_risk_score': float(weather_score),
+                'geopolitical_risk_score': float(geo_score),
+                'port_congestion_index': float(port_congestion),
+                'supplier_dependency_ratio': float(supplier_dep)
+            }])
+            raw_risk = risk_artifact['regressor'].predict(df_risk_in)[0]
+            calculated_risk = int(np.clip(round(float(raw_risk)), 0, 100))
         except Exception as err:
-            print("Risk model inference error:", err)
+            print("Dedicated Risk Scorer inference error:", err)
 
     # Risk Category mapping: <40 -> Low Risk, 40-69 -> Medium Risk, >=70 -> High Risk
     risk_category = "High Risk" if calculated_risk >= 70 else "Medium Risk" if calculated_risk >= 40 else "Low Risk"
