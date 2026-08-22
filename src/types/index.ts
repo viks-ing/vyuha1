@@ -70,6 +70,12 @@ export interface RiskScoreData {
   supplierExposureTrend: string;
 }
 
+export interface AlertTelemetry {
+  metricLabel: string;
+  metricValue: string;
+  badgeType?: 'danger' | 'warning' | 'info' | 'success';
+}
+
 export interface AlertItem {
   id: string;
   title: string;
@@ -79,6 +85,10 @@ export interface AlertItem {
   timestamp: string;
   affectedRoute?: string;
   actionRequired?: string;
+  recommendedAction?: string;
+  source?: string;
+  telemetry?: AlertTelemetry;
+  location?: string;
 }
 
 export interface RiskTrendItem {

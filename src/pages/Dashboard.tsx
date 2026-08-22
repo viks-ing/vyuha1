@@ -6,7 +6,6 @@ import { AlertCard } from '../components/dashboard/AlertCard';
 import { SupplyChainOverview } from '../components/dashboard/SupplyChainOverview';
 import { RiskTrendChart } from '../components/dashboard/RiskTrendChart';
 import { RiskFactorBreakdown } from '../components/dashboard/RiskFactorBreakdown';
-import { mockRiskTrendData, mockRiskFactorBreakdown } from '../data/mockData';
 import { formatINR } from '../lib/utils';
 import {
   Clock,
@@ -20,7 +19,7 @@ import {
 import { Button } from '../components/ui/Button';
 
 export const Dashboard: React.FC = () => {
-  const { company, riskData, alerts, dismissAlert, showToast, refreshRiskData, isLoadingMl } = useCompany();
+  const { company, riskData, riskTrendData, riskFactorBreakdown, alerts, dismissAlert, showToast, refreshRiskData, isLoadingMl } = useCompany();
 
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -130,8 +129,8 @@ export const Dashboard: React.FC = () => {
 
       {/* Recharts Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RiskTrendChart data={mockRiskTrendData} />
-        <RiskFactorBreakdown data={mockRiskFactorBreakdown} />
+        <RiskTrendChart data={riskTrendData} />
+        <RiskFactorBreakdown data={riskFactorBreakdown} />
       </div>
     </div>
   );

@@ -97,14 +97,24 @@ class RiskScoreData(BaseModel):
     supplierExposureTrend: str
     factors: List[RiskFactor]
 
+class AlertTelemetry(BaseModel):
+    metricLabel: Optional[str] = None
+    metricValue: Optional[str] = None
+    badgeType: Optional[str] = "warning"
+
 class AlertItem(BaseModel):
     id: str
     title: str
     severity: AlertSeverity
+    category: Optional[str] = "Weather"
     timestamp: str
     description: str
-    location: str
-    recommendedAction: str
+    location: Optional[str] = ""
+    affectedRoute: Optional[str] = ""
+    actionRequired: Optional[str] = ""
+    recommendedAction: Optional[str] = ""
+    source: Optional[str] = "Live API Feed"
+    telemetry: Optional[AlertTelemetry] = None
 
 class AnalysisRequest(BaseModel):
     supplierCount: int = Field(default=3, ge=0)

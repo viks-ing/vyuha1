@@ -1,8 +1,17 @@
+"""
+Vyuha ML Training Pipeline
+===========================
+Generates calibrated multi-partner logistics datasets and trains 3 robust Scikit-Learn ML models:
+1. Delay Prediction Model (GradientBoostingRegressor)
+2. Cost Increase Prediction Model (GradientBoostingRegressor)
+3. Disruption Risk Classifier & Scorer (GradientBoostingClassifier + Regressor)
+"""
+
 import os
 import sys
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier, RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
@@ -10,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error, r2_score, accuracy_score
 import joblib
 
-# Set UTF-8 stdout encoding for Windows compatibility
+# Set UTF-8 stdout encoding for Windows
 sys.stdout.reconfigure(encoding='utf-8')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
@@ -21,156 +30,145 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 np.random.seed(42)
 
 # ==========================================
-# 1. DATASET 1: DataCo Delay Prediction
+# 1. DELAY PREDICTION MODEL
 # ==========================================
 def generate_and_train_delay_model():
-    print("\n--- Generating Dataset 1: DataCo Supply Chain Delay Dataset ---")
-    n_samples = 10000
+    print("\n--- Training Model 1: Supply Chain Delay Model ---")
+    n_samples = 15000
 
-    shipping_modes = ['Standard Class', 'First Class', 'Second Class', 'Same Day']
-    product_categories = ['Electronics', 'Automotive', 'Apparel', 'Industrial Parts', 'Chemicals']
-    regions = ['South Asia', 'Europe', 'North America', 'East Asia', 'Latin America']
-
-    mode_choice = np.random.choice(shipping_modes, size=n_samples, p=[0.50, 0.20, 0.20, 0.10])
-    scheduled_days = np.where(mode_choice == 'Same Day', 1,
-                     np.where(mode_choice == 'First Class', 2,
-                     np.where(mode_choice == 'Second Class', 3, 5)))
+    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
+    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
     
-    quantity = np.random.randint(1, 10, size=n_samples)
-    price = np.random.uniform(10.0, 500.0, size=n_samples)
-    category = np.random.choice(product_categories, size=n_samples)
-    region = np.random.choice(regions, size=n_samples)
+    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
+    lead_times = np.random.uniform(0.5, 90.0, size=n_samples)
+    suppliers = np.random.randint(1, 40, size=n_samples)
+    weather_risk = np.random.uniform(0.0, 100.0, size=n_samples)
+    port_congestion = np.random.uniform(0.0, 10.0, size=n_samples)
 
-    # Realistic delay formula based on mode, quantity, and region risk
-    mode_delay_factor = np.where(mode_choice == 'Standard Class', 1.8,
-                        np.where(mode_choice == 'Second Class', 1.0,
-                        np.where(mode_choice == 'First Class', 0.4, 0.1)))
-    
-    region_delay_factor = np.where(region == 'South Asia', 1.2,
-                          np.where(region == 'Latin America', 1.1, 0.5))
+    # Realistic physical delay formula
+    mode_km_rate = np.where(modes == 'Air', 0.0003,
+                   np.where(modes == 'Rail', 0.0009,
+                   np.where(modes == 'Sea', 0.0022,
+                   np.where(modes == 'Multimodal', 0.0018, 0.0014)))) # Road
 
-    raw_delay = (mode_delay_factor * 1.5) + (quantity * 0.15) + (region_delay_factor * 0.8) + np.random.normal(0, 0.3, size=n_samples)
-    delays = np.maximum(0, np.round(raw_delay, 1))
-    actual_days = scheduled_days + delays
+    mode_base_delay = np.where(modes == 'Air', 0.1,
+                      np.where(modes == 'Rail', 0.5,
+                      np.where(modes == 'Sea', 2.0,
+                      np.where(modes == 'Multimodal', 1.0, 0.3)))) # Road
+
+    delay = (
+        mode_base_delay +
+        (distances * mode_km_rate) +
+        (lead_times * 0.04) +
+        (suppliers * 0.05) +
+        ((weather_risk / 100.0) * 2.2) +
+        (np.where(np.isin(modes, ['Sea', 'Multimodal']), port_congestion * 0.25, 0.0)) +
+        np.random.normal(0, 0.15, size=n_samples)
+    )
+    delay = np.maximum(0.1, np.round(delay, 2))
 
     df_delay = pd.DataFrame({
-        'scheduled_shipping_days': scheduled_days,
-        'actual_shipping_days': actual_days,
-        'delay_days': delays,
-        'late_delivery_risk': (delays > 0.5).astype(int),
-        'shipping_mode': mode_choice,
-        'order_item_quantity': quantity,
-        'product_price': np.round(price, 2),
-        'product_category': category,
-        'order_region': region
+        'distance_km': np.round(distances, 1),
+        'lead_time_days': np.round(lead_times, 1),
+        'supplier_count': suppliers,
+        'transport_mode': modes,
+        'weather_risk_score': np.round(weather_risk, 1),
+        'port_congestion_index': np.round(port_congestion, 1),
+        'predicted_delay_days': delay
     })
 
-    csv_path = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
+    csv_path = os.path.join(DATA_DIR, "logistics_delay_dataset.csv")
     df_delay.to_csv(csv_path, index=False)
     print(f"Dataset 1 saved to {csv_path} ({len(df_delay)} rows)")
 
-    # Features & Targets
-    X = df_delay[['scheduled_shipping_days', 'shipping_mode', 'order_item_quantity', 'product_price', 'product_category', 'order_region']]
-    y_reg = df_delay['delay_days']
-    y_clf = df_delay['late_delivery_risk']
+    X = df_delay[['distance_km', 'lead_time_days', 'supplier_count', 'transport_mode', 'weather_risk_score', 'port_congestion_index']]
+    y = df_delay['predicted_delay_days']
 
-    cat_cols = ['shipping_mode', 'product_category', 'order_region']
-    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price']
+    cat_cols = ['transport_mode']
+    num_cols = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'port_congestion_index']
 
     preprocessor = ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_cols),
         ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
     ])
 
-    # Regressor for exact Delay Days
     reg_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', GradientBoostingRegressor(n_estimators=100, random_state=42))
+        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y_reg, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     reg_pipeline.fit(X_train, y_train)
     y_pred = reg_pipeline.predict(X_test)
     print(f"Delay Model MAE: {mean_absolute_error(y_test, y_pred):.3f} days, R2: {r2_score(y_test, y_pred):.3f}")
 
-    # Classifier for Late Delivery Risk (0/1)
-    clf_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
-    ])
-    X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(X, y_clf, test_size=0.2, random_state=42)
-    clf_pipeline.fit(X_train_c, y_train_c)
-    y_pred_c = clf_pipeline.predict(X_test_c)
-    print(f"Late Delivery Risk Accuracy: {accuracy_score(y_test_c, y_pred_c):.3f}")
-
-    # Save artifact
     delay_model_path = os.path.join(MODEL_DIR, "delay_model.joblib")
     joblib.dump({
         'regressor': reg_pipeline,
-        'classifier': clf_pipeline,
         'features': list(X.columns)
     }, delay_model_path)
     print(f"Saved Delay Model artifact to {delay_model_path}")
 
 
 # ==========================================
-# 2. DATASET 2: India Multi-Partner Logistics Cost
+# 2. COST PREDICTION MODEL
 # ==========================================
 def generate_and_train_cost_model():
-    print("\n--- Generating Dataset 2: India Multi-Partner Logistics Cost Dataset ---")
-    n_samples = 10000
+    print("\n--- Training Model 2: Logistics Cost Prediction Model ---")
+    n_samples = 15000
 
-    cities = ['Hyderabad', 'Mumbai', 'Delhi', 'Chennai', 'Bengaluru', 'Kolkata', 'Pune', 'Ahmedabad', 'Visakhapatnam', 'Kochi']
-    transport_modes = ['Road', 'Rail', 'Sea', 'Air']
-    product_categories = ['Automotive Components', 'Pharmaceuticals', 'Heavy Machinery', 'Consumer Goods', 'Textiles']
-
-    origins = np.random.choice(cities, size=n_samples)
-    destinations = []
-    for o in origins:
-        choices = [c for c in cities if c != o]
-        destinations.append(np.random.choice(choices))
-    destinations = np.array(destinations)
-
-    distances = np.random.uniform(150, 2800, size=n_samples)
-    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.30, 0.15, 0.10])
-    weight_kg = np.random.uniform(50, 5000, size=n_samples)
-    quantity = np.random.randint(1, 100, size=n_samples)
-    categories = np.random.choice(product_categories, size=n_samples)
-    traffic_index = np.random.uniform(1.0, 10.0, size=n_samples)
-
-    # Tariff rate per km per 100kg: Air = 12.5 INR, Road = 3.8 INR, Rail = 2.1 INR, Sea = 1.3 INR
-    mode_rate_per_km_100kg = np.where(modes == 'Air', 12.5,
-                            np.where(modes == 'Road', 3.8,
-                            np.where(modes == 'Rail', 2.1, 1.3)))
+    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
+    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
     
-    base_cost = (distances * (weight_kg / 100.0) * mode_rate_per_km_100kg) + 1500.0
-    traffic_factor = 1.0 + (traffic_index * 0.02)
-    noise = np.random.normal(0, 0.03 * base_cost)
-    
-    costs = np.round(base_cost * traffic_factor + noise, 2)
-    costs = np.maximum(costs, 800.0)
+    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
+    weight_kg = np.random.uniform(10.0, 10000.0, size=n_samples)
+    suppliers = np.random.randint(1, 30, size=n_samples)
+    traffic_density = np.random.uniform(1.0, 10.0, size=n_samples)
+
+    # Freight cost formula (INR)
+    per_km_rate = np.where(modes == 'Air', 35.0,
+                  np.where(modes == 'Road', 14.5,
+                  np.where(modes == 'Multimodal', 11.0,
+                  np.where(modes == 'Rail', 7.5, 4.0)))) # Sea
+
+    per_kg_rate = np.where(modes == 'Air', 12.0,
+                  np.where(modes == 'Road', 1.8,
+                  np.where(modes == 'Multimodal', 1.5,
+                  np.where(modes == 'Rail', 0.9, 0.4)))) # Sea
+
+    base_terminal_fee = np.where(modes == 'Air', 2500.0,
+                        np.where(modes == 'Sea', 3500.0,
+                        np.where(modes == 'Multimodal', 2000.0,
+                        np.where(modes == 'Rail', 1200.0, 600.0)))) # Road
+
+    cost = (
+        base_terminal_fee +
+        (distances * per_km_rate) +
+        (weight_kg * per_kg_rate) +
+        (suppliers * 450.0) +
+        (traffic_density * distances * 0.15) +
+        np.random.normal(0, 50.0, size=n_samples)
+    )
+    cost = np.maximum(350.0, np.round(cost, 2))
 
     df_cost = pd.DataFrame({
-        'origin_city': origins,
-        'destination_city': destinations,
         'distance_km': np.round(distances, 1),
         'transport_mode': modes,
         'shipment_weight_kg': np.round(weight_kg, 1),
-        'quantity': quantity,
-        'product_category': categories,
-        'traffic_density_index': np.round(traffic_index, 1),
-        'shipping_cost_inr': costs
+        'supplier_count': suppliers,
+        'traffic_density_index': np.round(traffic_density, 1),
+        'shipping_cost_inr': cost
     })
 
     csv_path = os.path.join(DATA_DIR, "india_logistics_cost.csv")
     df_cost.to_csv(csv_path, index=False)
     print(f"Dataset 2 saved to {csv_path} ({len(df_cost)} rows)")
 
-    X = df_cost[['distance_km', 'transport_mode', 'shipment_weight_kg', 'quantity', 'product_category', 'traffic_density_index']]
+    X = df_cost[['distance_km', 'transport_mode', 'shipment_weight_kg', 'supplier_count', 'traffic_density_index']]
     y = df_cost['shipping_cost_inr']
 
-    cat_cols = ['transport_mode', 'product_category']
-    num_cols = ['distance_km', 'shipment_weight_kg', 'quantity', 'traffic_density_index']
+    cat_cols = ['transport_mode']
+    num_cols = ['distance_km', 'shipment_weight_kg', 'supplier_count', 'traffic_density_index']
 
     preprocessor = ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_cols),
@@ -179,7 +177,7 @@ def generate_and_train_cost_model():
 
     cost_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', GradientBoostingRegressor(n_estimators=100, random_state=42))
+        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -196,44 +194,49 @@ def generate_and_train_cost_model():
 
 
 # ==========================================
-# 3. DATASET 3: Global Supply Chain Disruption Risk
+# 3. DISRUPTION RISK MODEL
 # ==========================================
 def generate_and_train_risk_model():
-    print("\n--- Generating Dataset 3: Supply Chain Disruption Risk Dataset ---")
-    n_samples = 5000
+    print("\n--- Training Model 3: Disruption Risk Model ---")
+    n_samples = 15000
 
-    modes = np.random.choice(['Road', 'Rail', 'Sea', 'Air'], size=n_samples, p=[0.4, 0.3, 0.2, 0.1])
-    geo_risk = np.random.uniform(0.0, 100.0, size=n_samples)
+    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
+    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
+    
+    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
+    lead_times = np.random.uniform(0.5, 90.0, size=n_samples)
+    suppliers = np.random.randint(1, 40, size=n_samples)
     weather_risk = np.random.uniform(0.0, 100.0, size=n_samples)
+    geo_risk = np.random.uniform(0.0, 100.0, size=n_samples)
     port_congestion = np.random.uniform(0.0, 10.0, size=n_samples)
-    port_dwell_hours = np.random.uniform(12.0, 144.0, size=n_samples)
-    supplier_reliability = np.random.uniform(0.1, 1.0, size=n_samples)
-    supplier_dependency = np.random.uniform(0.1, 1.0, size=n_samples)
-    distance_km = np.random.uniform(100, 5000, size=n_samples)
+    supplier_dep = np.random.uniform(0.05, 0.95, size=n_samples)
 
-    risk_score = (
-        (geo_risk * 0.25) +
-        (weather_risk * 0.25) +
-        (port_congestion * 3.0) +
-        ((1.0 - supplier_reliability) * 25.0) +
-        (supplier_dependency * 15.0) +
-        (np.where(modes == 'Sea', port_dwell_hours * 0.15, 0.0))
+    # Risk Score continuous calculation (0 to 100)
+    raw_risk = (
+        ((distances / 4000.0) * 18.0) +
+        ((lead_times / 60.0) * 16.0) +
+        (supplier_dep * 22.0) +
+        ((weather_risk / 100.0) * 20.0) +
+        ((geo_risk / 100.0) * 10.0) +
+        (np.where(np.isin(modes, ['Sea', 'Multimodal']), (port_congestion / 10.0) * 14.0, (port_congestion / 10.0) * 4.0)) +
+        (np.where(modes == 'Road', 6.0, np.where(modes == 'Sea', 8.0, 2.0))) +
+        np.random.normal(0, 1.5, size=n_samples)
     )
+    raw_risk = np.clip(np.round(raw_risk, 1), 5.0, 98.0)
 
-    risk_level = np.where(risk_score < 40, 0, np.where(risk_score < 65, 1, 2))
-    disruption_event = np.where(risk_score > 60, 1, 0)
+    # 0 = Low Risk (< 40), 1 = Medium Risk (40-69), 2 = High Risk (>= 70)
+    risk_level = np.where(raw_risk < 40.0, 0, np.where(raw_risk < 70.0, 1, 2))
 
     df_risk = pd.DataFrame({
-        'geopolitical_risk_score': np.round(geo_risk, 1),
-        'weather_risk_score': np.round(weather_risk, 1),
-        'port_congestion_index': np.round(port_congestion, 1),
-        'port_dwell_time_hours': np.round(port_dwell_hours, 1),
-        'supplier_reliability_rating': np.round(supplier_reliability, 2),
-        'supplier_dependency_ratio': np.round(supplier_dependency, 2),
-        'route_distance_km': np.round(distance_km, 1),
+        'distance_km': np.round(distances, 1),
+        'lead_time_days': np.round(lead_times, 1),
+        'supplier_count': suppliers,
         'transport_mode': modes,
-        'risk_score': np.round(risk_score, 2),
-        'disruption_event': disruption_event,
+        'weather_risk_score': np.round(weather_risk, 1),
+        'geopolitical_risk_score': np.round(geo_risk, 1),
+        'port_congestion_index': np.round(port_congestion, 1),
+        'supplier_dependency_ratio': np.round(supplier_dep, 2),
+        'risk_score': raw_risk,
         'disruption_risk_level': risk_level
     })
 
@@ -241,39 +244,56 @@ def generate_and_train_risk_model():
     df_risk.to_csv(csv_path, index=False)
     print(f"Dataset 3 saved to {csv_path} ({len(df_risk)} rows)")
 
-    X = df_risk[['geopolitical_risk_score', 'weather_risk_score', 'port_congestion_index', 'port_dwell_time_hours', 'supplier_reliability_rating', 'supplier_dependency_ratio', 'route_distance_km', 'transport_mode']]
+    X = df_risk[['distance_km', 'lead_time_days', 'supplier_count', 'transport_mode', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']]
     y = df_risk['disruption_risk_level']
 
     cat_cols = ['transport_mode']
-    num_cols = ['geopolitical_risk_score', 'weather_risk_score', 'port_congestion_index', 'port_dwell_time_hours', 'supplier_reliability_rating', 'supplier_dependency_ratio', 'route_distance_km']
+    num_cols = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
 
     preprocessor = ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_cols),
         ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
     ])
 
-    risk_pipeline = Pipeline(steps=[
+    # Multi-class Classifier
+    clf_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('classifier', GradientBoostingClassifier(n_estimators=100, random_state=42))
+        ('classifier', GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42))
+    ])
+
+    # Direct Regressor for exact continuous 0-100 Risk Score
+    reg_pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    risk_pipeline.fit(X_train, y_train)
-    y_pred = risk_pipeline.predict(X_test)
-    print(f"Risk Model Accuracy: {accuracy_score(y_test, y_pred):.3f}")
+    y_reg_train = df_risk.loc[X_train.index, 'risk_score']
+    y_reg_test = df_risk.loc[X_test.index, 'risk_score']
+
+    clf_pipeline.fit(X_train, y_train)
+    reg_pipeline.fit(X_train, y_reg_train)
+
+    y_pred_clf = clf_pipeline.predict(X_test)
+    y_pred_reg = reg_pipeline.predict(X_test)
+
+    print(f"Risk Classifier Accuracy: {accuracy_score(y_test, y_pred_clf):.3f}")
+    print(f"Risk Score Regressor MAE: {mean_absolute_error(y_reg_test, y_pred_reg):.2f} pts, R2: {r2_score(y_reg_test, y_pred_reg):.3f}")
 
     risk_model_path = os.path.join(MODEL_DIR, "risk_model.joblib")
     joblib.dump({
-        'classifier': risk_pipeline,
+        'classifier': clf_pipeline,
+        'regressor': reg_pipeline,
         'features': list(X.columns)
     }, risk_model_path)
     print(f"Saved Risk Model artifact to {risk_model_path}")
 
 
 if __name__ == "__main__":
-    print("=== STARTING VYUHA ML MODEL GENERATION & TRAINING ===")
+    print("==========================================")
+    print("VYUHA ML RETRAINING & CALIBRATION ENGINE")
+    print("==========================================")
     generate_and_train_delay_model()
     generate_and_train_cost_model()
     generate_and_train_risk_model()
-    print("\n=== ALL 3 VYUHA ML MODELS TRAINED & SAVED SUCCESSFULLY ===")
-
+    print("\n✅ All 3 ML Models Retrained & Serialized Successfully!")

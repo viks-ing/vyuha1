@@ -13,7 +13,12 @@ They serve as baseline operational performance benchmarks for the Vyuha platform
 from fastapi import APIRouter, HTTPException, status
 from datetime import datetime
 import os
+import sys
 import uuid
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
 import joblib
 import pandas as pd
 import numpy as np
@@ -170,9 +175,16 @@ def get_risk_overview():
         ]
     )
 
-@router.get("/alerts")
-def get_alerts():
-    return mock_alerts
+from services.live_feeds import generate_live_alerts, get_live_weather_score_for_location
+
+@router.get("/alerts", response_model=list[AlertItem])
+def get_alerts(suppliers: int = 3, hub: str = "Mumbai", mode: str = "Road"):
+    return generate_live_alerts(supplier_count=suppliers, hub_location=hub, transport_mode=mode)
+
+@router.get("/live-weather")
+def get_live_weather(city: str = "Mumbai"):
+    score = get_live_weather_score_for_location(city)
+    return {"city": city, "weatherRiskScore": score, "timestamp": datetime.now().isoformat()}
 
 @router.post("/analyze", response_model=AnalysisResponse)
 def analyze_risk(req: AnalysisRequest):
@@ -192,71 +204,73 @@ def analyze_risk(req: AnalysisRequest):
     predicted_cost = 15000.0
     calculated_risk = 72
 
-    # 1. Delay Model Inference (DataCo dataset)
+    # 1. Delay Model Inference
     if delay_artifact and "regressor" in delay_artifact:
         try:
-            shipping_mode_map = {
-                'Air': 'Same Day',
-                'Road': 'Standard Class',
-                'Rail': 'Second Class',
-                'Sea': 'Standard Class'
-            }
             df_delay_in = pd.DataFrame([{
-                'scheduled_shipping_days': max(1, int(lead_time_days / 2)),
-                'shipping_mode': shipping_mode_map.get(transport_mode, 'Standard Class'),
-                'order_item_quantity': max(1, supplier_count),
-                'product_price': 250.0,
-                'product_category': 'Industrial Parts',
-                'order_region': 'South Asia'
+                'distance_km': float(distance_km),
+                'lead_time_days': float(lead_time_days),
+                'supplier_count': int(supplier_count),
+                'transport_mode': transport_mode,
+                'weather_risk_score': float(weather_score),
+                'port_congestion_index': float(port_congestion)
             }])
             pred_delay = delay_artifact['regressor'].predict(df_delay_in)[0]
-            predicted_delay = float(round(max(0.0, float(pred_delay)), 1))
+            predicted_delay = float(round(max(0.1, float(pred_delay)), 1))
         except Exception as err:
             print("Delay model inference error:", err)
 
-    # 2. Cost Model Inference (India Logistics dataset)
+    # 2. Cost Model Inference
     if cost_artifact and "regressor" in cost_artifact:
         try:
             df_cost_in = pd.DataFrame([{
                 'distance_km': float(distance_km),
                 'transport_mode': transport_mode,
                 'shipment_weight_kg': float(weight_kg),
-                'quantity': int(supplier_count * 10 if supplier_count > 0 else 10),
-                'product_category': 'Automotive Components',
+                'supplier_count': int(supplier_count),
                 'traffic_density_index': 6.5
             }])
             pred_cost = cost_artifact['regressor'].predict(df_cost_in)[0]
-            predicted_cost = float(round(max(500.0, float(pred_cost)), 2))
+            predicted_cost = float(round(max(250.0, float(pred_cost)), 2))
         except Exception as err:
             print("Cost model inference error:", err)
 
-    # 3. Disruption Risk Model Inference (Global Risk & Port Dwell dataset)
-    if risk_artifact and "classifier" in risk_artifact:
+    # 3. Disruption Risk Model Inference
+    if risk_artifact:
         try:
             df_risk_in = pd.DataFrame([{
-                'geopolitical_risk_score': float(np.clip(geo_score, 0.0, 100.0)),
-                'weather_risk_score': float(np.clip(weather_score, 0.0, 100.0)),
-                'port_congestion_index': float(np.clip(port_congestion, 0.0, 10.0)),
-                'port_dwell_time_hours': float(port_congestion * 12.0),
-                'supplier_reliability_rating': float(np.clip(1.0 - supplier_dep, 0.05, 1.0)),
-                'supplier_dependency_ratio': float(np.clip(supplier_dep, 0.0, 1.0)),
-                'route_distance_km': float(distance_km),
-                'transport_mode': transport_mode
+                'distance_km': float(distance_km),
+                'lead_time_days': float(lead_time_days),
+                'supplier_count': int(supplier_count),
+                'transport_mode': transport_mode,
+                'weather_risk_score': float(weather_score),
+                'geopolitical_risk_score': float(geo_score),
+                'port_congestion_index': float(port_congestion),
+                'supplier_dependency_ratio': float(supplier_dep)
             }])
-            pred_proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
-            # Classes: 0 = Low, 1 = Medium, 2 = High
-            calculated_risk = int(round(float(pred_proba[1] * 50 + pred_proba[2] * 100)))
-            calculated_risk = int(np.clip(calculated_risk, 5, 99))
+            if 'regressor' in risk_artifact:
+                raw_pred = risk_artifact['regressor'].predict(df_risk_in)[0]
+                calculated_risk = int(np.clip(round(float(raw_pred)), 5, 98))
+            elif 'classifier' in risk_artifact:
+                pred_proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
+                calculated_risk = int(round(float(pred_proba[1] * 50 + pred_proba[2] * 100)))
+                calculated_risk = int(np.clip(calculated_risk, 5, 98))
         except Exception as err:
             print("Risk model inference error:", err)
 
-    # Risk Category mapping: 0 -> LOW, 1 -> MEDIUM, 2 -> HIGH
+    # Risk Category mapping: <40 -> Low Risk, 40-69 -> Medium Risk, >=70 -> High Risk
     risk_category = "High Risk" if calculated_risk >= 70 else "Medium Risk" if calculated_risk >= 40 else "Low Risk"
 
+    print(f"\n[CALIBRATED ML INFERENCE ON .JOBLIB ARTIFACTS]")
+    print(f"   Inputs: Distance={distance_km}km | Mode={transport_mode} | LeadTime={lead_time_days}d | Suppliers={supplier_count} | Weather={weather_score}")
+    print(f"   Delay Model: {predicted_delay} Days")
+    print(f"   Cost Model : INR {predicted_cost:,.2f}")
+    print(f"   Risk Model : Score = {calculated_risk}/100 ({risk_category})\n")
+
     recommendations = [
-        "Diversify tier-1 supplier cluster to secondary manufacturing hubs in Gujarat & Tamil Nadu.",
-        "Implement real-time GPS tracking on high-value transit shipments.",
-        f"Increase buffer lead time stock by at least {max(2, int(predicted_delay))} days to absorb variance."
+        "Diversify tier-1 supplier cluster to secondary manufacturing hubs in Gujarat & Tamil Nadu." if supplier_count > 4 else "Maintain primary supplier SLAs and quarterly compliance reviews.",
+        "Implement real-time GPS tracking on high-value transit shipments." if distance_km > 100 else "Standardize digital dispatch bills with local logistics fleet.",
+        f"Increase buffer lead time stock by at least {max(1, int(predicted_delay))} days to absorb variance."
     ]
 
     return AnalysisResponse(

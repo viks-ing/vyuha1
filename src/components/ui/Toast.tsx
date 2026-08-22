@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCompany } from '../../context/CompanyContext';
-import { CheckCircle2, Info } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const Toast: React.FC = () => {
   const { toastMessage } = useCompany();

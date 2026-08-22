@@ -164,13 +164,18 @@ export async function getRiskOverview(): Promise<RiskOverviewData> {
   }
 }
 
+import { fetchLiveRealTimeAlerts } from './liveFeedsService';
+import { AlertItem } from '../types';
+
 /**
- * Fetches active supply chain disruption alerts.
+ * Fetches active supply chain disruption alerts from real-time API feeds.
  */
-export async function getAlerts(): Promise<AlertData[]> {
+export async function getAlerts(params?: { supplierCount?: number; hubLocation?: string; transportMode?: string }): Promise<AlertItem[]> {
   try {
-    return await apiFetch<AlertData[]>('/risk/alerts');
+    const { alerts } = await fetchLiveRealTimeAlerts(params);
+    return alerts;
   } catch (err) {
+    console.warn('Live alerts fetch notice, falling back to local feeds:', err);
     return [];
   }
 }

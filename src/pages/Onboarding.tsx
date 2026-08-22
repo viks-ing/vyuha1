@@ -24,7 +24,7 @@ export const Onboarding: React.FC = () => {
     if (!company.info.companyName || !company.isOnboarded) {
       setOnboardingStep(1);
     }
-  }, []);
+  }, [company.info.companyName, company.isOnboarded, setOnboardingStep]);
 
   const handleStep1Next = (data: CompanyInformationData) => {
     updateCompanyInfo(data);
