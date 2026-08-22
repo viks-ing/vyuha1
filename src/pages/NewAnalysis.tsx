@@ -27,13 +27,61 @@ export const NewAnalysis: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<any>(null);
 
+  // Trigger real-time calculation whenever any input parameter changes live
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const isMonsoon = form.scenario.includes('Monsoon');
+        const isPort = form.scenario.includes('Port');
+        const isDiesel = form.scenario.includes('Diesel');
+        const isSupplier = form.scenario.includes('Supplier');
+
+        const weatherRisk = isMonsoon ? 90.0 : 40.0;
+        const portCongestion = isPort ? 9.2 : 4.5;
+        const supplierDep = isSupplier ? 0.90 : Math.min(0.85, (form.supplierCount / 15));
+
+        const apiResult = await analyzeRisk({
+          supplierCount: Number(form.supplierCount),
+          primaryTransportMode: form.transportMode,
+          averageLeadTimeDays: Number(form.averageLeadTimeDays),
+          deliveryDistanceKm: Number(form.deliveryDistanceKm),
+          maxAcceptableDelayDays: 3,
+          maxAdditionalBudget: Number(form.maxAdditionalBudget),
+          supplierDependencyRatio: supplierDep,
+          weatherRiskScore: weatherRisk,
+          portCongestionIndex: portCongestion,
+          shipmentWeightKg: isDiesel ? 5000.0 : 1500.0,
+        });
+
+        setResult({
+          score: apiResult.riskScore,
+          status: apiResult.riskCategory.toUpperCase(),
+          expectedDelay: apiResult.predictedDelayDays,
+          expectedCost: apiResult.predictedCostIncrease,
+          primaryDriver: form.scenario,
+          confidence: '96.4%',
+          recommendations: apiResult.recommendations,
+        });
+      } catch (err) {
+        console.warn('Real-time ML calculation error:', err);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [
+    form.deliveryDistanceKm,
+    form.averageLeadTimeDays,
+    form.supplierCount,
+    form.transportMode,
+    form.scenario,
+    form.maxAdditionalBudget,
+  ]);
+
   const handleRunAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsRunning(true);
-    setResult(null);
 
     try {
-      // Dynamic scenario parameter mapping
       const isMonsoon = form.scenario.includes('Monsoon');
       const isPort = form.scenario.includes('Port');
       const isDiesel = form.scenario.includes('Diesel');
@@ -43,7 +91,6 @@ export const NewAnalysis: React.FC = () => {
       const portCongestion = isPort ? 9.2 : 4.5;
       const supplierDep = isSupplier ? 0.90 : Math.min(0.85, (form.supplierCount / 15));
 
-      // Call Python FastAPI trained ML models with user's exact dynamic inputs
       const apiResult = await analyzeRisk({
         supplierCount: Number(form.supplierCount),
         primaryTransportMode: form.transportMode,
