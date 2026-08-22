@@ -1,8 +1,8 @@
 """
-Vyuha ML Real-Data Training Pipeline
-====================================
+Vyuha ML Real-Data Training & Evaluation Pipeline
+=================================================
 1. DataCo Delay Model (GradientBoostingRegressor) -> delay_model.joblib
-2. DataCo Logistics Cost Model (GradientBoostingRegressor) -> cost_model.joblib
+2. DataCo Logistics Cost Estimator (GradientBoostingRegressor) -> cost_model.joblib
 3. Multi-Factor Real-Data Risk Scorer Engine (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
 """
 
@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -63,10 +63,14 @@ def train_dataco_delay_and_cost():
         axis=1
     )
 
-    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
+    feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price',
+        'shipping_mode', 'product_category', 'order_region',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio'
+    ]
     X = df[feature_cols]
 
-    # 1. DELAY MODEL
+    # 1. DELAY PREDICTION MODEL
     y_delay = df['delay_days']
     X_tr, X_te, y_tr, y_te = train_test_split(X, y_delay, test_size=0.2, random_state=42)
 
@@ -74,13 +78,28 @@ def train_dataco_delay_and_cost():
         ('preprocessor', get_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
-    delay_pipeline.fit(X_tr, y_tr)
 
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_r2_scores = cross_val_score(delay_pipeline, X_tr, y_tr, cv=kf, scoring='r2')
+    
+    delay_pipeline.fit(X_tr, y_tr)
+    tr_pred_del = delay_pipeline.predict(X_tr)
     te_pred_del = delay_pipeline.predict(X_te)
-    print(f"DataCo Delay Model -> Test MAE: {mean_absolute_error(y_te, te_pred_del):.4f} days | Test R²: {r2_score(y_te, te_pred_del):.4f}")
+
+    # Mean Baseline for Delay
+    mean_delay_baseline = np.full_like(y_te, fill_value=y_tr.mean())
+    baseline_mae_delay = mean_absolute_error(y_te, mean_delay_baseline)
+
+    print("\n[MODEL 1 — DELAY PREDICTION MODEL]")
+    print(f"  5-Fold CV Mean R²    : {cv_r2_scores.mean():.4f} ± {cv_r2_scores.std():.4f}")
+    print(f"  Train MAE / R²       : {mean_absolute_error(y_tr, tr_pred_del):.4f} days | R²: {r2_score(y_tr, tr_pred_del):.4f}")
+    print(f"  Test MAE / RMSE / R² : {mean_absolute_error(y_te, te_pred_del):.4f} days | RMSE: {np.sqrt(mean_squared_error(y_te, te_pred_del)):.4f} days | R²: {r2_score(y_te, te_pred_del):.4f}")
+    print(f"  Mean Baseline MAE    : {baseline_mae_delay:.4f} days (Model MAE Improvement: {baseline_mae_delay - mean_absolute_error(y_te, te_pred_del):+.4f} days)")
+    print(f"  Generalization Gap   : {r2_score(y_tr, tr_pred_del) - r2_score(y_te, te_pred_del):.4f}")
+
     joblib.dump({'regressor': delay_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "delay_model.joblib"))
 
-    # 2. COST MODEL
+    # 2. LOGISTICS COST ESTIMATOR MODEL
     y_cost = df['shipping_cost']
     X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X, y_cost, test_size=0.2, random_state=42)
 
@@ -88,16 +107,28 @@ def train_dataco_delay_and_cost():
         ('preprocessor', get_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
+
+    cv_r2_cost = cross_val_score(cost_pipeline, X_tr_c, y_tr_c, cv=kf, scoring='r2')
     cost_pipeline.fit(X_tr_c, y_tr_c)
 
+    tr_pred_cost = cost_pipeline.predict(X_tr_c)
     te_pred_cost = cost_pipeline.predict(X_te_c)
-    print(f"DataCo Cost Model  -> Test MAE: INR {mean_absolute_error(y_te_c, te_pred_cost):.2f} | Test R²: {r2_score(y_te_c, te_pred_cost):.4f}")
+
+    mean_cost_baseline = np.full_like(y_te_c, fill_value=y_tr_c.mean())
+    baseline_mae_cost = mean_absolute_error(y_te_c, mean_cost_baseline)
+
+    print("\n[MODEL 2 — LOGISTICS COST ESTIMATOR MODEL (Scenario-Based)]")
+    print(f"  5-Fold CV Mean R²    : {cv_r2_cost.mean():.4f} ± {cv_r2_cost.std():.4f}")
+    print(f"  Train MAE / R²       : INR {mean_absolute_error(y_tr_c, tr_pred_cost):.2f} | R²: {r2_score(y_tr_c, tr_pred_cost):.4f}")
+    print(f"  Test MAE / RMSE / R² : INR {mean_absolute_error(y_te_c, te_pred_cost):.2f} | RMSE: INR {np.sqrt(mean_squared_error(y_te_c, te_pred_cost)):.2f} | R²: {r2_score(y_te_c, te_pred_cost):.4f}")
+    print(f"  Mean Baseline MAE    : INR {baseline_mae_cost:.2f} (Model MAE Improvement: INR {baseline_mae_cost - mean_absolute_error(y_te_c, te_pred_cost):+.2f})")
+    print(f"  Classification Note  : Scenario-Based Cost Estimator (Derived freight rate contract)")
+
     joblib.dump({'regressor': cost_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
 def train_genuine_real_data_risk_engine():
-    print("\n--- Training Scientifically Defensible ML Risk Engine on ORIGINAL late_delivery_risk Target ---")
+    print("\n[MODEL 3 — VYUHA REAL-DATA ML RISK ENGINE]")
     df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
-    print(f"Loaded Multi-Factor DataCo Dataset ({len(df)} records)")
 
     feature_cols = [
         'scheduled_shipping_days', 'order_item_quantity', 'product_price',
@@ -118,6 +149,9 @@ def train_genuine_real_data_risk_engine():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_auc_scores = cross_val_score(risk_pipeline, X_train, y_train, cv=skf, scoring='roc_auc')
 
     risk_pipeline.fit(X_train, y_train)
 
@@ -143,18 +177,18 @@ def train_genuine_real_data_risk_engine():
     brier = brier_score_loss(y_test, te_proba)
     cm = confusion_matrix(y_test, te_pred)
 
-    print(f"Genuine Calibrated Risk Engine Metrics (ORIGINAL late_delivery_risk target):")
-    print(f"  Majority Baseline    : {maj_baseline:.2f}%")
-    print(f"  Train Accuracy       : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}% (Lift: {te_acc*100 - maj_baseline:+.2f}%)")
-    print(f"  Balanced Accuracy    : {bal_acc*100:.2f}%")
-    print(f"  Class-1 Precision    : {te_prec:.4f} | Recall: {te_rec:.4f}")
-    print(f"  Class-0 Specificity  : {spec:.4f}")
-    print(f"  Weighted F1          : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
-    print(f"  Calibrated ROC-AUC   : {auc:.4f}")
-    print(f"  Calibrated PR-AUC    : {pr_auc:.4f}")
-    print(f"  Calibrated Brier     : {brier:.4f}")
-    print(f"  Confusion Matrix     :\n{cm}")
-    print(f"  Generalization Gap   : {tr_acc - te_acc:.4f}")
+    print(f"  5-Fold CV Mean ROC-AUC: {cv_auc_scores.mean():.4f} ± {cv_auc_scores.std():.4f}")
+    print(f"  Majority Baseline Acc : {maj_baseline:.2f}%")
+    print(f"  Train Accuracy        : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}% (Lift: {te_acc*100 - maj_baseline:+.2f}%)")
+    print(f"  Balanced Accuracy     : {bal_acc*100:.2f}%")
+    print(f"  Class-1 Precision     : {te_prec:.4f} | Class-1 Recall: {te_rec:.4f} (FNR: {(1-te_rec)*100:.2f}%)")
+    print(f"  Class-0 Specificity   : {spec:.4f} (FPR: {(1-spec)*100:.2f}%)")
+    print(f"  Weighted F1           : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
+    print(f"  Calibrated ROC-AUC    : {auc:.4f}")
+    print(f"  Calibrated PR-AUC     : {pr_auc:.4f}")
+    print(f"  Calibrated Brier      : {brier:.4f}")
+    print(f"  Confusion Matrix      :\n{cm}")
+    print(f"  Generalization Gap    : {tr_acc - te_acc:.4f}")
 
     risk_scorer_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
     joblib.dump({
@@ -171,8 +205,8 @@ def train_genuine_real_data_risk_engine():
 
 if __name__ == "__main__":
     print("==================================================")
-    print(" VYUHA ML ENGINE: MULTI-FACTOR RETRAINING ")
+    print(" VYUHA ML QUALITY RECTIFICATION TRAINING PIPELINE ")
     print("==================================================")
     train_dataco_delay_and_cost()
     train_genuine_real_data_risk_engine()
-    print("\n✅ All Models Serialized & Validated Successfully!")
+    print("\n✅ All 3 Models Serialized & Validated Successfully!")
