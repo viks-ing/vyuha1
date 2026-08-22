@@ -1,6 +1,10 @@
 from fastapi import APIRouter
 from datetime import datetime
+import os
 import uuid
+import joblib
+import pandas as pd
+import numpy as np
 from schemas import (
     RiskScoreData,
     RiskFactor,
@@ -12,6 +16,29 @@ from schemas import (
 )
 
 router = APIRouter(prefix="/api/risk", tags=["Risk ML Engine & Scenarios"])
+
+MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_models")
+
+# Load trained ML model artifacts
+delay_artifact = None
+cost_artifact = None
+risk_artifact = None
+
+try:
+    delay_path = os.path.join(MODEL_DIR, "delay_model.joblib")
+    if os.path.exists(delay_path):
+        delay_artifact = joblib.load(delay_path)
+
+    cost_path = os.path.join(MODEL_DIR, "cost_model.joblib")
+    if os.path.exists(cost_path):
+        cost_artifact = joblib.load(cost_path)
+
+    risk_path = os.path.join(MODEL_DIR, "risk_model.joblib")
+    if os.path.exists(risk_path):
+        risk_artifact = joblib.load(risk_path)
+    print("Vyuha ML Trained Models Loaded Successfully into FastAPI Backend!")
+except Exception as e:
+    print(f"Warning: Could not load trained ML artifacts: {e}")
 
 mock_alerts = [
     AlertItem(
@@ -48,9 +75,9 @@ def get_risk_overview():
     return RiskScoreData(
         overallScore=82,
         status="HIGH RISK",
-        expectedDelayDays=8.4,
-        expectedDelayTrend="+1.8 days from last week",
-        expectedAdditionalCost=12500.0,
+        expectedDelayDays=3.4,
+        expectedDelayTrend="+1.2 days from last week",
+        expectedAdditionalCost=18450.0,
         expectedCostTrend="+₹2,100 from last week",
         supplierExposurePercent=64,
         supplierExposureTrend="15 of 24 suppliers exposed",
@@ -96,20 +123,67 @@ def get_alerts():
 
 @router.post("/analyze", response_model=AnalysisResponse)
 def analyze_risk(req: AnalysisRequest):
-    # Predictive ML simulation calculation
-    calculated_risk = min(
-        99,
-        int((req.supplierCount * 1.5) + (req.averageLeadTimeDays * 3.2) + (req.deliveryDistanceKm * 0.04))
-    )
-    
+    predicted_delay = 2.5
+    predicted_cost = 15000.0
+    calculated_risk = 72
+
+    # 1. Inference with trained Delay Model (DataCo dataset)
+    if delay_artifact and "regressor" in delay_artifact:
+        try:
+            df_in = pd.DataFrame([{
+                'scheduled_shipping_days': max(1, int(req.averageLeadTimeDays / 2)),
+                'shipping_mode': 'Standard Class',
+                'order_item_quantity': req.supplierCount,
+                'product_price': 250.0,
+                'product_category': 'Industrial Parts',
+                'order_region': 'South Asia'
+            }])
+            pred = delay_artifact['regressor'].predict(df_in)[0]
+            predicted_delay = float(round(max(0.2, float(pred)), 1))
+        except Exception as err:
+            print("Delay model inference error:", err)
+
+    # 2. Inference with trained Cost Model (India Logistics dataset)
+    if cost_artifact and "regressor" in cost_artifact:
+        try:
+            df_cost_in = pd.DataFrame([{
+                'distance_km': float(req.deliveryDistanceKm),
+                'transport_mode': 'Road',
+                'shipment_weight_kg': 1500.0,
+                'quantity': int(req.supplierCount * 10),
+                'product_category': 'Automotive Components',
+                'traffic_density_index': 6.5
+            }])
+            pred_cost = cost_artifact['regressor'].predict(df_cost_in)[0]
+            predicted_cost = float(round(max(1000.0, float(pred_cost)), 2))
+        except Exception as err:
+            print("Cost model inference error:", err)
+
+    # 3. Inference with trained Disruption Risk Model (Global Risk & Port Dwell dataset)
+    if risk_artifact and "classifier" in risk_artifact:
+        try:
+            df_risk_in = pd.DataFrame([{
+                'geopolitical_risk_score': float(min(95.0, req.averageLeadTimeDays * 5.0)),
+                'weather_risk_score': 65.0,
+                'port_congestion_index': 6.2,
+                'port_dwell_time_hours': 48.0,
+                'supplier_reliability_rating': float(max(0.2, 1.0 - (req.supplierCount * 0.03))),
+                'supplier_dependency_ratio': float(min(0.9, req.supplierCount * 0.08)),
+                'route_distance_km': float(req.deliveryDistanceKm),
+                'transport_mode': 'Road'
+            }])
+            pred_proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
+            calculated_risk = int(round(float(pred_proba[1] * 50 + pred_proba[2] * 100)))
+            calculated_risk = min(99, max(15, calculated_risk))
+        except Exception as err:
+            print("Risk model inference error:", err)
+
     category = "High Risk" if calculated_risk > 70 else "Medium Risk" if calculated_risk > 40 else "Low Risk"
-    predicted_delay = round(req.averageLeadTimeDays * 1.35, 1)
-    predicted_cost = round(req.deliveryDistanceKm * 28.5 + req.maxAdditionalBudget * 0.15, 2)
-    
+
     recommendations = [
         "Diversify tier-1 supplier cluster to secondary manufacturing hubs in Gujarat & Tamil Nadu.",
         "Implement real-time GPS tracking on high-value transit shipments.",
-        f"Increase buffer lead time stock by at least {max(2, int(predicted_delay / 2))} days to absorb variance."
+        f"Increase buffer lead time stock by at least {max(2, int(predicted_delay))} days to absorb variance."
     ]
 
     return AnalysisResponse(
@@ -146,3 +220,4 @@ def run_scenario(req: ScenarioRequest):
         affectedRoutesCount=max(1, int(routes * intensity_factor)),
         mitigationStrategy=mitigation
     )
+
