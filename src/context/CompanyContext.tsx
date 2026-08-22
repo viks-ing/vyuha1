@@ -15,6 +15,7 @@ import {
   defaultNotificationSettings,
   defaultDashboardPreferences,
 } from '../data/mockData';
+import { analyzeRisk, getRiskOverview, getAlerts } from '../services/riskApi';
 
 interface CompanyContextType {
   company: CompanyData;
@@ -35,6 +36,8 @@ interface CompanyContextType {
   updatePreferences: (prefs: Partial<DashboardPreferences>) => void;
   toastMessage: string | null;
   showToast: (msg: string) => void;
+  refreshRiskData: () => Promise<void>;
+  isLoadingMl: boolean;
 }
 
 const STORAGE_KEY = 'vyuha_company_state_v1';
@@ -47,7 +50,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Force onboardingStep to 1 if not fully onboarded or companyName is missing
         if (!parsed.isOnboarded || !parsed.info?.companyName) {
           return {
             ...parsed,
@@ -63,15 +65,58 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return defaultCompanyData;
   });
 
+  const [riskData, setRiskData] = useState<RiskScoreData>(mockRiskScoreData);
   const [alerts, setAlerts] = useState<AlertItem[]>(mockAlerts);
   const [userProfile, setUserProfile] = useState<UserProfile>(mockUserProfile);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
   const [preferences, setPreferences] = useState<DashboardPreferences>(defaultDashboardPreferences);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoadingMl, setIsLoadingMl] = useState<boolean>(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(company));
   }, [company]);
+
+  // Fetch live predictions from FastAPI trained ML models based on company profile
+  const refreshRiskData = async () => {
+    setIsLoadingMl(true);
+    try {
+      const profile = company.profile || {};
+      const res = await analyzeRisk({
+        supplierCount: profile.supplierCount || 3,
+        primaryTransportMode: profile.primaryTransportMode || 'Road',
+        averageLeadTimeDays: profile.averageLeadTimeDays || 10.0,
+        deliveryDistanceKm: profile.deliveryDistanceKm || 350.0,
+        maxAcceptableDelayDays: company.constraints?.maxAcceptableDelayDays || 3,
+        maxAdditionalBudget: company.constraints?.maxAdditionalBudget || 10000,
+      });
+
+      const statusUpper = res.riskCategory.toUpperCase();
+      const statusValue: 'LOW RISK' | 'MEDIUM RISK' | 'HIGH RISK' | 'CRITICAL RISK' = 
+        statusUpper.includes('LOW') ? 'LOW RISK' :
+        statusUpper.includes('MEDIUM') ? 'MEDIUM RISK' :
+        statusUpper.includes('CRITICAL') ? 'CRITICAL RISK' : 'HIGH RISK';
+
+      setRiskData((prev) => ({
+        ...prev,
+        overallScore: res.riskScore,
+        status: statusValue,
+        expectedDelayDays: res.predictedDelayDays,
+        expectedAdditionalCost: res.predictedCostIncrease,
+        supplierExposurePercent: Math.min(95, Math.max(10, Math.round((profile.supplierCount || 3) * 12))),
+      }));
+    } catch (err) {
+      console.warn('Backend API offline, falling back to cached baseline:', err);
+    } finally {
+      setIsLoadingMl(false);
+    }
+  };
+
+  useEffect(() => {
+    if (company.isOnboarded) {
+      refreshRiskData();
+    }
+  }, [company.isOnboarded, company.profile?.supplierCount, company.profile?.deliveryDistanceKm]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -116,6 +161,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updatedAt: new Date().toISOString().split('T')[0],
     }));
     showToast('Company onboarding completed successfully!');
+    refreshRiskData();
   };
 
   const resetOnboarding = () => {
@@ -176,7 +222,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         completeOnboarding,
         resetOnboarding,
         setOnboardingStep,
-        riskData: mockRiskScoreData,
+        riskData,
         alerts,
         dismissAlert,
         userProfile,
@@ -187,6 +233,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatePreferences,
         toastMessage,
         showToast,
+        refreshRiskData,
+        isLoadingMl,
       }}
     >
       {children}

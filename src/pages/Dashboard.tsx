@@ -20,7 +20,7 @@ import {
 import { Button } from '../components/ui/Button';
 
 export const Dashboard: React.FC = () => {
-  const { company, riskData, alerts, dismissAlert, showToast } = useCompany();
+  const { company, riskData, alerts, dismissAlert, showToast, refreshRiskData, isLoadingMl } = useCompany();
 
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -59,7 +59,11 @@ export const Dashboard: React.FC = () => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => showToast('Refreshed live model metrics.')}
+            isLoading={isLoadingMl}
+            onClick={async () => {
+              await refreshRiskData();
+              showToast('Refreshed predictions from live ML models!');
+            }}
             className="hover:scale-[1.02] transition-all"
           >
             <RefreshCw className="w-3.5 h-3.5" />
