@@ -48,94 +48,6 @@ const TOP_INDIAN_HUBS = [
   'Kochi',
 ];
 
-const ALL_INDIAN_CITIES = [
-  'Hyderabad, Telangana',
-  'Chennai, Tamil Nadu',
-  'Mumbai, Maharashtra',
-  'Delhi, Delhi NCR',
-  'Bengaluru, Karnataka',
-  'Kolkata, West Bengal',
-  'Pune, Maharashtra',
-  'Ahmedabad, Gujarat',
-  'Visakhapatnam, Andhra Pradesh',
-  'Kochi, Kerala',
-  'Jaipur, Rajasthan',
-  'Surat, Gujarat',
-  'Lucknow, Uttar Pradesh',
-  'Kanpur, Uttar Pradesh',
-  'Nagpur, Maharashtra',
-  'Indore, Madhya Pradesh',
-  'Thane, Maharashtra',
-  'Bhopal, Madhya Pradesh',
-  'Patna, Bihar',
-  'Vadodara, Gujarat',
-  'Ghaziabad, Uttar Pradesh',
-  'Ludhiana, Punjab',
-  'Agra, Uttar Pradesh',
-  'Nashik, Maharashtra',
-  'Faridabad, Haryana',
-  'Meerut, Uttar Pradesh',
-  'Rajkot, Gujarat',
-  'Varanasi, Uttar Pradesh',
-  'Srinagar, Jammu and Kashmir',
-  'Aurangabad, Maharashtra',
-  'Dhanbad, Jharkhand',
-  'Amritsar, Punjab',
-  'Navi Mumbai, Maharashtra',
-  'Allahabad, Uttar Pradesh',
-  'Howrah, West Bengal',
-  'Gwalior, Madhya Pradesh',
-  'Jabalpur, Madhya Pradesh',
-  'Coimbatore, Tamil Nadu',
-  'Vijayawada, Andhra Pradesh',
-  'Jodhpur, Rajasthan',
-  'Madurai, Tamil Nadu',
-  'Raipur, Chhattisgarh',
-  'Kota, Rajasthan',
-  'Chandigarh',
-  'Guwahati, Assam',
-  'Solapur, Maharashtra',
-  'Hubli-Dharwad, Karnataka',
-  'Bareilly, Uttar Pradesh',
-  'Mysore, Karnataka',
-  'Moradabad, Uttar Pradesh',
-  'Gurugram, Haryana',
-  'Aligarh, Uttar Pradesh',
-  'Jalandhar, Punjab',
-  'Tiruchirappalli, Tamil Nadu',
-  'Bhubaneswar, Odisha',
-  'Salem, Tamil Nadu',
-  'Warangal, Telangana',
-  'Thiruvananthapuram, Kerala',
-  'Noida, Uttar Pradesh',
-  'Jamshedpur, Jharkhand',
-  'Bhilai, Chhattisgarh',
-  'Cuttack, Odisha',
-  'Firozabad, Uttar Pradesh',
-  'Nellore, Andhra Pradesh',
-  'Bhavnagar, Gujarat',
-  'Dehradun, Uttarakhand',
-  'Durgapur, West Bengal',
-  'Asansol, West Bengal',
-  'Rourkela, Odisha',
-  'Nanded, Maharashtra',
-  'Kolhapur, Maharashtra',
-  'Ajmer, Rajasthan',
-  'Akola, Maharashtra',
-  'Gulbarga, Karnataka',
-  'Jamnagar, Gujarat',
-  'Ujjain, Madhya Pradesh',
-  'Siliguri, West Bengal',
-  'Jhansi, Uttar Pradesh',
-  'Jammu, Jammu and Kashmir',
-  'Mangalore, Karnataka',
-  'Erode, Tamil Nadu',
-  'Belgaum, Karnataka',
-  'Tirunelveli, Tamil Nadu',
-  'Gaya, Bihar',
-  'Udaipur, Rajasthan',
-];
-
 import { routeService } from '../services/routeService';
 
 export const RouteIntelligence: React.FC = () => {
@@ -149,38 +61,6 @@ export const RouteIntelligence: React.FC = () => {
   const [routeAlertsData, setRouteAlertsData] = useState<RouteDisruptionAlertsResult | null>(null);
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
   const [clickTarget, setClickTarget] = useState<'origin' | 'destination' | null>('origin');
-
-  const [showOriginDropdown, setShowOriginDropdown] = useState<boolean>(false);
-  const [showDestDropdown, setShowDestDropdown] = useState<boolean>(false);
-
-  const originContainerRef = React.useRef<HTMLDivElement>(null);
-  const destContainerRef = React.useRef<HTMLDivElement>(null);
-
-  const filteredOriginCities = origin.trim()
-    ? ALL_INDIAN_CITIES.filter((c) => c.toLowerCase().includes(origin.toLowerCase()))
-    : ALL_INDIAN_CITIES;
-
-  const filteredDestCities = destination.trim()
-    ? ALL_INDIAN_CITIES.filter((c) => c.toLowerCase().includes(destination.toLowerCase()))
-    : ALL_INDIAN_CITIES;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (originContainerRef.current && !originContainerRef.current.contains(event.target as Node)) {
-        setShowOriginDropdown(false);
-      }
-      if (destContainerRef.current && !destContainerRef.current.contains(event.target as Node)) {
-        setShowDestDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, []);
 
   const handleAnalyze = useCallback(async () => {
     if (!origin.trim() || !destination.trim()) {
@@ -315,7 +195,7 @@ export const RouteIntelligence: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             {/* Origin Input */}
-            <div ref={originContainerRef} className="md:col-span-5 space-y-1.5 relative">
+            <div className="md:col-span-5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold uppercase text-slate-700 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-emerald-600" /> Origin Location (A)
@@ -332,56 +212,12 @@ export const RouteIntelligence: React.FC = () => {
                   <MousePointerClick className="w-3 h-3" /> Pin on Map
                 </button>
               </div>
-              <div className="relative">
-                <Input
-                  placeholder="Type city name (e.g. Hyderabad, Mumbai...)"
-                  value={origin}
-                  onFocus={() => setShowOriginDropdown(true)}
-                  onChange={(e) => {
-                    setOrigin(e.target.value);
-                    setShowOriginDropdown(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowOriginDropdown(false);
-                    } else if (e.key === 'Enter' && filteredOriginCities.length > 0) {
-                      setOrigin(filteredOriginCities[0]);
-                      setShowOriginDropdown(false);
-                      setClickTarget('destination');
-                    }
-                  }}
-                  className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
-                />
-
-                {showOriginDropdown && filteredOriginCities.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1">
-                    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
-                      Cities in India ({filteredOriginCities.length})
-                    </p>
-                    {filteredOriginCities.map((city) => (
-                      <button
-                        key={city}
-                        type="button"
-                        onClick={() => {
-                          setOrigin(city);
-                          setShowOriginDropdown(false);
-                          setClickTarget('destination');
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
-                          <span>{city}</span>
-                        </div>
-                        {origin.toLowerCase() === city.toLowerCase() && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
+              <Input
+                placeholder="e.g. Hyderabad, Telangana or lat,lon"
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
+              />
               {/* Hub Shortcuts */}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <span className="text-[10px] font-mono text-slate-400 self-center">Quick:</span>
@@ -414,7 +250,7 @@ export const RouteIntelligence: React.FC = () => {
             </div>
 
             {/* Destination Input */}
-            <div ref={destContainerRef} className="md:col-span-5 space-y-1.5 relative">
+            <div className="md:col-span-5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold uppercase text-slate-700 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-sky-600" /> Destination Location (B)
@@ -431,54 +267,12 @@ export const RouteIntelligence: React.FC = () => {
                   <MousePointerClick className="w-3 h-3" /> Pin on Map
                 </button>
               </div>
-              <div className="relative">
-                <Input
-                  placeholder="Type city name (e.g. Chennai, Delhi...)"
-                  value={destination}
-                  onFocus={() => setShowDestDropdown(true)}
-                  onChange={(e) => {
-                    setDestination(e.target.value);
-                    setShowDestDropdown(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowDestDropdown(false);
-                    } else if (e.key === 'Enter' && filteredDestCities.length > 0) {
-                      setDestination(filteredDestCities[0]);
-                      setShowDestDropdown(false);
-                    }
-                  }}
-                  className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
-                />
-
-                {showDestDropdown && filteredDestCities.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1">
-                    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
-                      Cities in India ({filteredDestCities.length})
-                    </p>
-                    {filteredDestCities.map((city) => (
-                      <button
-                        key={city}
-                        type="button"
-                        onClick={() => {
-                          setDestination(city);
-                          setShowDestDropdown(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-sky-700 hover:bg-sky-50/60 transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3 h-3 text-sky-500 shrink-0" />
-                          <span>{city}</span>
-                        </div>
-                        {destination.toLowerCase() === city.toLowerCase() && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
+              <Input
+                placeholder="e.g. Chennai, Tamil Nadu or lat,lon"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
+              />
               {/* Hub Shortcuts */}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <span className="text-[10px] font-mono text-slate-400 self-center">Quick:</span>
