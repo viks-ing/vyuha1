@@ -49,6 +49,8 @@ const indianStates = Object.keys(indianStatesAndCities);
 export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext }) => {
   const [formData, setFormData] = useState<CompanyInformationData>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
 
   const [city, setCity] = useState(() => {
     if (initialData.location) {
@@ -153,6 +155,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
           e.preventDefault();
           setStateName(topMatch);
           setCity(''); // Reset city selection
+          setShowStateDropdown(false);
         }
       }
     }
@@ -165,6 +168,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
         if (city.trim().toLowerCase() !== topMatch.toLowerCase()) {
           e.preventDefault();
           setCity(topMatch);
+          setShowCityDropdown(false);
         }
       }
     }
@@ -227,7 +231,9 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
           Headquarters <span className="text-rose-500">*</span>
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
+          
+          {/* Custom State Dropdown */}
+          <div className="space-y-1.5 relative">
             <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
               State
             </label>
@@ -235,28 +241,53 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
               <MapPin className="absolute left-3 text-slate-400 w-4 h-4 pointer-events-none" />
               <input
                 type="text"
-                list="indian-states"
                 placeholder="e.g. Maharashtra"
                 value={stateName}
+                onFocus={() => setShowStateDropdown(true)}
+                onBlur={() => setTimeout(() => setShowStateDropdown(false), 200)}
                 onChange={(e) => {
                   setStateName(e.target.value);
-                  setCity(''); // Reset city selection when state changes
+                  setCity(''); // Reset city selection
+                  setShowStateDropdown(true);
                 }}
                 onKeyDown={handleStateKeyDown}
-                className={`flex h-10 w-full rounded-lg border bg-white pl-10 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${
+                className={`flex h-10 w-full rounded-lg border bg-white pl-10 pr-8 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${
                   errors.state ? 'border-rose-500' : 'border-slate-300'
                 }`}
               />
-              <datalist id="indian-states">
-                {filteredStates.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
+              <div className="absolute right-3 text-slate-400 pointer-events-none">
+                <svg className={`w-4 h-4 transition-transform duration-200 ${showStateDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
+
+            {showStateDropdown && filteredStates.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
+                {filteredStates.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={() => {
+                      setStateName(s);
+                      setCity('');
+                      setShowStateDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:text-sky-600 hover:bg-sky-50/50 transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{s}</span>
+                    {stateName.toLowerCase() === s.toLowerCase() && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {errors.state && <p className="text-xs text-rose-500 font-medium">{errors.state}</p>}
           </div>
 
-          <div className="space-y-1.5">
+          {/* Custom City Dropdown */}
+          <div className="space-y-1.5 relative">
             <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
               City
             </label>
@@ -264,24 +295,50 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
               <MapPin className="absolute left-3 text-slate-400 w-4 h-4 pointer-events-none" />
               <input
                 type="text"
-                list="indian-cities"
                 placeholder={cityPlaceholder}
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onFocus={() => matchedState && setShowCityDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setShowCityDropdown(true);
+                }}
                 onKeyDown={handleCityKeyDown}
                 disabled={!matchedState}
-                className={`flex h-10 w-full rounded-lg border bg-white pl-10 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${
+                className={`flex h-10 w-full rounded-lg border bg-white pl-10 pr-8 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${
                   errors.city ? 'border-rose-500' : 'border-slate-300'
                 } disabled:opacity-60 disabled:bg-slate-50`}
               />
-              <datalist id="indian-cities">
-                {filteredCities.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
+              <div className="absolute right-3 text-slate-400 pointer-events-none">
+                <svg className={`w-4 h-4 transition-transform duration-200 ${showCityDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
+
+            {showCityDropdown && filteredCities.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
+                {filteredCities.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onMouseDown={() => {
+                      setCity(c);
+                      setShowCityDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:text-sky-600 hover:bg-sky-50/50 transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{c}</span>
+                    {city.toLowerCase() === c.toLowerCase() && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {errors.city && <p className="text-xs text-rose-500 font-medium">{errors.city}</p>}
           </div>
+
         </div>
       </div>
 
