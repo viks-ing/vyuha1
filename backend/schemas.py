@@ -97,22 +97,40 @@ class RiskScoreData(BaseModel):
     supplierExposureTrend: str
     factors: List[RiskFactor]
 
+class AlertTelemetry(BaseModel):
+    metricLabel: Optional[str] = None
+    metricValue: Optional[str] = None
+    badgeType: Optional[str] = "warning"
+
 class AlertItem(BaseModel):
     id: str
     title: str
     severity: AlertSeverity
+    category: Optional[str] = "Weather"
     timestamp: str
     description: str
-    location: str
-    recommendedAction: str
+    location: Optional[str] = ""
+    affectedRoute: Optional[str] = ""
+    actionRequired: Optional[str] = ""
+    recommendedAction: Optional[str] = ""
+    source: Optional[str] = "Live API Feed"
+    telemetry: Optional[AlertTelemetry] = None
 
 class AnalysisRequest(BaseModel):
-    supplierCount: int
-    primaryTransportMode: str
-    averageLeadTimeDays: float
-    deliveryDistanceKm: float
-    maxAcceptableDelayDays: int
-    maxAdditionalBudget: float
+    supplierCount: int = Field(default=3, ge=0)
+    primaryTransportMode: Optional[str] = 'Road'
+    averageLeadTimeDays: float = Field(default=10.0, ge=0)
+    deliveryDistanceKm: float = Field(default=350.0, ge=0)
+    maxAcceptableDelayDays: Optional[int] = Field(default=3, ge=0)
+    maxAdditionalBudget: Optional[float] = Field(default=10000.0, ge=0)
+    
+    # Optional extended parameters for advanced risk modeling:
+    supplierDependencyRatio: Optional[float] = Field(default=0.75, ge=0.0, le=1.0)
+    inventoryLevel: Optional[float] = Field(default=8000.0, ge=0)
+    shipmentWeightKg: Optional[float] = Field(default=1500.0, ge=0)
+    weatherRiskScore: Optional[float] = Field(default=50.0, ge=0.0, le=100.0)
+    geopoliticalRiskScore: Optional[float] = Field(default=30.0, ge=0.0, le=100.0)
+    portCongestionIndex: Optional[float] = Field(default=5.0, ge=0.0, le=10.0)
 
 class AnalysisResponse(BaseModel):
     analysisId: str

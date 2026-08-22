@@ -12,6 +12,7 @@ import {
   Search,
   Sparkles,
   LogOut,
+  ArrowLeft,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
@@ -65,6 +66,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
           aria-label="Open Mobile Menu"
         >
           <Menu className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => navigate(-1)}
+          className="group inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer mr-1"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Back</span>
         </button>
 
         <div>

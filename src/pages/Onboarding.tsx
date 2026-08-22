@@ -5,7 +5,7 @@ import { OnboardingProgress } from '../components/onboarding/OnboardingProgress'
 import { CompanyInformationStep } from '../components/onboarding/CompanyInformation';
 import { SupplyChainProfileStep } from '../components/onboarding/SupplyChainProfileStep';
 import { BusinessConstraintsStep } from '../components/onboarding/BusinessConstraintsStep';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { CompanyInformationData, SupplyChainProfileData, BusinessConstraintsData } from '../types';
 
 import { companyService } from '../services/companyService';
@@ -29,7 +29,7 @@ export const Onboarding: React.FC = () => {
     if (!company.info.companyName || !company.isOnboarded) {
       setOnboardingStep(1);
     }
-  }, []);
+  }, [company.info.companyName, company.isOnboarded, setOnboardingStep]);
 
   const handleStep1Next = (data: CompanyInformationData) => {
     updateCompanyInfo(data);
@@ -87,6 +87,16 @@ export const Onboarding: React.FC = () => {
 
       {/* Main Centered Onboarding Card Container */}
       <div className="w-full max-w-2xl glass-card bg-white rounded-2xl p-6 sm:p-10 shadow-xl border border-slate-200 relative z-10">
+        {/* Back button inside the white card */}
+        <div className="flex justify-start mb-6 -mt-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back</span>
+          </button>
+        </div>
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center text-white font-black shadow-lg shadow-sky-600/20 mb-3">

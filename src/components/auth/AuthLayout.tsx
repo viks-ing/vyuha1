@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, Cpu, Activity, TrendingUp } from 'lucide-react';
+import { ShieldAlert, Cpu, Activity, TrendingUp, ArrowLeft, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   title,
   subtitle,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full bg-slate-50 text-slate-800 flex flex-col justify-between relative overflow-hidden">
       {/* Background ambient lighting effects */}
@@ -30,12 +33,6 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </span>
         </Link>
 
-        <Link
-          to="/"
-          className="text-xs font-mono text-slate-600 hover:text-sky-600 transition-colors flex items-center gap-1.5 font-semibold"
-        >
-          &larr; Return to Home
-        </Link>
       </header>
 
       {/* Main Split Content Container */}
@@ -57,43 +54,54 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               Vyuha connects internal operational metrics with real-time Indian logistics, port activity, weather anomalies, and macroeconomic indicators.
             </p>
 
-            {/* Quick Live Preview Widget */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-md">
-              <div className="flex items-center justify-between text-xs text-slate-500 border-b border-slate-100 pb-2">
-                <span className="flex items-center gap-1.5 font-mono text-sky-600 font-semibold">
-                  <Activity className="w-3.5 h-3.5 animate-pulse" /> LIVE RISK TELEMETRY
-                </span>
-                <span className="font-mono text-emerald-600 font-bold">STATUS: ACTIVE</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono font-bold">Port Activity</div>
-                  <div className="text-xs font-bold text-slate-900 mt-0.5">High Strain</div>
+            {/* Elegant Core Capabilities Showcase */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-xs hover:border-sky-300 transition-all duration-200">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+                  <TrendingUp className="w-4 h-4" />
                 </div>
-                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono font-bold">USD / INR</div>
-                  <div className="text-xs font-bold text-slate-900 mt-0.5">₹89.12</div>
-                </div>
-                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono font-bold">Monsoon Impact</div>
-                  <div className="text-xs font-bold text-amber-700 mt-0.5">Elevated</div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Predictive Risk Scoring</h4>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Calculate multi-factor probability indexes for ports, weather disruption, and macro trends.</p>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-6 text-xs font-mono text-slate-500">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-sky-600" />
-                <span className="font-semibold text-slate-700">94.2% Prediction Accuracy</span>
+              <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-xs hover:border-sky-300 transition-all duration-200">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Logistics Infrastructure Sync</h4>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Direct telemetry integration with Indian shipping hubs, rail lanes, and national highway sensors.</p>
+                </div>
               </div>
-              <span>•</span>
-              <span>Multi-Factor Analysis</span>
+
+              <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-xs hover:border-sky-300 transition-all duration-200">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Dynamic Scenario Lab</h4>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">Simulate supply corridor bottlenecks and calculate alternative routes to bypass disruption zones.</p>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Right / Auth Form Panel */}
           <div className="col-span-1 lg:col-span-6 flex justify-center">
             <div className="w-full max-w-md bg-white backdrop-blur-xl border border-slate-200 p-6 sm:p-8 rounded-2xl shadow-xl relative">
+              {/* Back button inside white card */}
+              <div className="flex justify-start mb-4">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                  <span>Back</span>
+                </button>
+              </div>
+
               <div className="mb-6 space-y-1">
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
                 <p className="text-xs text-slate-500">{subtitle}</p>
@@ -105,6 +113,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         </div>
       </main>
+
+
 
       {/* Auth Footer */}
       <footer className="relative z-10 p-6 text-center text-xs font-mono text-slate-500 border-t border-slate-200 bg-white">

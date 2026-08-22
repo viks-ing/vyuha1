@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
 import { SupplyChainProfileData } from '../../types';
-import { Truck, Users, Clock, Navigation, Anchor, ArrowRight } from 'lucide-react';
+import { Truck, Users, Clock, Navigation, Anchor, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Props {
@@ -13,74 +13,92 @@ export const SupplyChainOverview: React.FC<Props> = ({ profile, importDependency
   const stats = [
     {
       label: 'Active Key Suppliers',
-      value: `${profile.supplierCount}`,
+      value: `${profile.supplierCount} Suppliers`,
       subtext: 'Tier-1 & Tier-2 vendors',
       icon: Users,
-      color: 'text-sky-600',
+      iconBg: 'bg-sky-50 text-sky-600 border-sky-200',
+      valueColor: 'text-slate-900',
     },
     {
-      label: 'Primary Transport',
-      value: `${profile.primaryTransportMode} Freight`,
-      subtext: 'Main corridor transit',
+      label: 'Primary Transport Mode',
+      value: profile.primaryTransportMode,
+      subtext: `${profile.primaryTransportMode} freight transit`,
       icon: Truck,
-      color: 'text-emerald-600',
+      iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+      valueColor: 'text-emerald-700',
     },
     {
       label: 'Average Lead Time',
       value: `${profile.averageLeadTimeDays} Days`,
-      subtext: 'Dispatch to inventory',
+      subtext: 'Dispatch to inventory dock',
       icon: Clock,
-      color: 'text-amber-600',
+      iconBg: 'bg-amber-50 text-amber-600 border-amber-200',
+      valueColor: 'text-amber-700',
     },
     {
-      label: 'Delivery Distance',
+      label: 'Average Transit Radius',
       value: `${profile.deliveryDistanceKm} km`,
-      subtext: 'Average transit radius',
+      subtext: 'Interstate freight radius',
       icon: Navigation,
-      color: 'text-cyan-600',
+      iconBg: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+      valueColor: 'text-slate-900',
     },
     {
       label: 'Import Dependency',
       value: `${importDependencyPercent}%`,
       subtext: 'Sea freight raw materials',
       icon: Anchor,
-      color: 'text-purple-600',
+      iconBg: 'bg-purple-50 text-purple-600 border-purple-200',
+      valueColor: 'text-purple-700',
     },
   ];
 
   return (
-    <Card className="border-slate-200">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-slate-200 shadow-sm bg-white h-full flex flex-col justify-between overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100 bg-slate-50/40">
         <div>
-          <CardTitle className="text-lg font-bold text-slate-900">Supply Chain Operational Overview</CardTitle>
-          <CardDescription>Baseline parameters registered for your organization</CardDescription>
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-sky-600" />
+            <CardTitle className="text-base font-bold text-slate-900">Supply Chain Overview</CardTitle>
+          </div>
+          <CardDescription className="text-xs text-slate-500 mt-0.5">
+            Registered baseline parameters
+          </CardDescription>
         </div>
-        <Link to="/profile" className="text-xs text-sky-600 font-semibold hover:underline flex items-center gap-1">
+        <Link
+          to="/profile"
+          className="text-xs text-sky-600 font-semibold hover:text-sky-700 hover:underline flex items-center gap-1 shrink-0"
+        >
           Edit Profile <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </CardHeader>
 
-      <CardContent className="pt-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={idx}
-                className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 hover:border-slate-300 transition-colors"
-              >
-                <div className="flex items-center justify-between text-slate-500 mb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">
-                    {stat.label}
-                  </span>
-                  <Icon className={`w-4 h-4 ${stat.color}`} />
+      <CardContent className="p-4 space-y-2.5 flex-1">
+        {stats.map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={idx}
+              className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/60 transition-all flex items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-lg border shrink-0 ${stat.iconBg}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
-                <p className="text-xl font-black text-slate-900">{stat.value}</p>
-                <p className="text-[10px] text-slate-500 truncate">{stat.subtext}</p>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{stat.label}</h4>
+                  <p className="text-[11px] text-slate-500 truncate leading-normal">{stat.subtext}</p>
+                </div>
               </div>
-            );
-          })}
-        </div>
+
+              <div className="text-right shrink-0">
+                <span className={`text-sm font-extrabold font-mono ${stat.valueColor} block`}>
+                  {stat.value}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

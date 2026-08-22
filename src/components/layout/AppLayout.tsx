@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 import { Toast } from '../ui/Toast';
+import { ArrowLeft } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isDashboard = location.pathname === '/dashboard';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased">
@@ -21,7 +26,7 @@ export const AppLayout: React.FC = () => {
           onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
         />
 
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-8 overflow-x-hidden">
+        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6 overflow-x-hidden">
           <Outlet />
         </main>
 

@@ -1,17 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { 
-  ArrowRight, 
-  Clock, 
-  TrendingUp, 
-  AlertTriangle, 
-  Activity, 
-  Zap, 
-  Radio,
-  Sparkles
-} from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const Hero: React.FC = () => {
   const navigate = useNavigate();
