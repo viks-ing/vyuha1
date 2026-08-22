@@ -6,7 +6,6 @@ import { Hero } from '../components/landing/Hero';
 import { TrustStrip } from '../components/landing/TrustStrip';
 import { Features } from '../components/landing/Features';
 import { HowVyuhaWorks } from '../components/landing/HowVyuhaWorks';
-import { RiskPrediction } from '../components/landing/RiskPrediction';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/Footer';
 
@@ -33,7 +32,6 @@ export const LandingPage: React.FC = () => {
         <TrustStrip />
         <Features />
         <HowVyuhaWorks />
-        <RiskPrediction />
         <CTASection />
       </main>
       <Footer />
