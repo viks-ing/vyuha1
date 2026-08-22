@@ -3,7 +3,7 @@ Vyuha ML Real-Data Training Pipeline
 ====================================
 1. DataCo Delay Model (GradientBoostingRegressor) -> delay_model.joblib
 2. DataCo Logistics Cost Model (GradientBoostingRegressor) -> cost_model.joblib
-3. Genuine Real-Data ML Risk Scorer Engine (GradientBoostingClassifier) -> risk_scorer.joblib
+3. Genuine Real-Data ML Risk Scorer (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
 """
 
 import os
@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
@@ -22,7 +23,10 @@ from sklearn.metrics import (
     accuracy_score,
     precision_score,
     recall_score,
-    f1_score
+    f1_score,
+    roc_auc_score,
+    brier_score_loss,
+    confusion_matrix
 )
 import joblib
 
@@ -89,23 +93,26 @@ def train_dataco_delay_and_cost():
     joblib.dump({'regressor': cost_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
 def train_genuine_real_data_risk_engine():
-    print("\n--- Training Genuine Real-Data ML Risk Engine (GradientBoostingClassifier) ---")
+    print("\n--- Training Genuine Real-Data ML Risk Engine on ORIGINAL late_delivery_risk Target ---")
     df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
     print(f"Loaded Real DataCo Dataset ({len(df)} records)")
 
-    # Define observed real disruption target (1 if delay > 3.0 days, 0 otherwise)
-    df['disruption_occurrence'] = (df['delay_days'] > 3.0).astype(int)
-
+    # ORIGINAL DataCo Target
     feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
     X = df[feature_cols]
-    y = df['disruption_occurrence']
+    y = df['late_delivery_risk']
+
+    base_gbc = GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42)
+    calibrated_gbc = CalibratedClassifierCV(estimator=base_gbc, cv=5, method='sigmoid')
 
     risk_pipeline = Pipeline([
         ('preprocessor', get_preprocessor()),
-        ('classifier', GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42))
+        ('classifier', calibrated_gbc)
     ])
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
     risk_pipeline.fit(X_train, y_train)
 
@@ -115,18 +122,24 @@ def train_genuine_real_data_risk_engine():
 
     tr_acc = accuracy_score(y_train, tr_pred)
     te_acc = accuracy_score(y_test, te_pred)
-    te_prec = precision_score(y_test, te_pred, average='weighted')
-    te_rec = recall_score(y_test, te_pred, average='weighted')
-    tr_f1 = f1_score(y_train, tr_pred, average='weighted')
-    te_f1 = f1_score(y_test, te_pred, average='weighted')
-    te_f1_macro = f1_score(y_test, te_pred, average='macro')
+    te_prec = precision_score(y_test, te_pred, zero_division=0)
+    te_rec = recall_score(y_test, te_pred, zero_division=0)
+    tr_f1 = f1_score(y_train, tr_pred, average='weighted', zero_division=0)
+    te_f1 = f1_score(y_test, te_pred, average='weighted', zero_division=0)
+    te_f1_macro = f1_score(y_test, te_pred, average='macro', zero_division=0)
 
-    print(f"Genuine Real-Data Risk Classifier Metrics:")
-    print(f"  Train Accuracy: {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}%")
-    print(f"  Test Precision : {te_prec:.4f} | Recall: {te_rec:.4f}")
-    print(f"  Weighted F1    : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
-    print(f"  Generalization Gap (Accuracy Δ) -> {tr_acc - te_acc:.4f}")
-    print(f"  Probability Range P(disruption): min={te_proba.min()*100:.1f}%, max={te_proba.max()*100:.1f}%")
+    auc = roc_auc_score(y_test, te_proba)
+    brier = brier_score_loss(y_test, te_proba)
+    cm = confusion_matrix(y_test, te_pred)
+
+    print(f"Genuine Calibrated Risk Engine Metrics (ORIGINAL late_delivery_risk target):")
+    print(f"  Train Accuracy       : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}%")
+    print(f"  Test Precision       : {te_prec:.4f} | Recall: {te_rec:.4f}")
+    print(f"  Weighted F1          : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
+    print(f"  Calibrated ROC-AUC   : {auc:.4f}")
+    print(f"  Calibrated Brier     : {brier:.4f}")
+    print(f"  Confusion Matrix     :\n{cm}")
+    print(f"  Generalization Gap (Acc Δ) -> {tr_acc - te_acc:.4f}")
 
     risk_scorer_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
     joblib.dump({
@@ -134,18 +147,18 @@ def train_genuine_real_data_risk_engine():
         'features': feature_cols
     }, risk_scorer_path)
 
-    # Save backward compatible artifact as well
+    # Backward compatible artifact
     joblib.dump({
         'classifier': risk_pipeline,
         'features': feature_cols
     }, os.path.join(MODEL_DIR, "risk_model.joblib"))
 
-    print(f"✅ Saved genuine real-data Risk Engine artifact to {risk_scorer_path}")
+    print(f"✅ Saved genuine calibrated Risk Engine artifact to {risk_scorer_path}")
 
 if __name__ == "__main__":
     print("==================================================")
-    print(" VYUHA ML ENGINE: GENUINE REAL-DATA RETRAINING ")
+    print(" VYUHA ML ENGINE: ORIGINAL TARGET RETRAINING ")
     print("==================================================")
     train_dataco_delay_and_cost()
     train_genuine_real_data_risk_engine()
-    print("\n✅ All 3 ML Models Serialized & Validated Successfully!")
+    print("\n✅ All Models Serialized & Validated Successfully!")
