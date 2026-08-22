@@ -226,7 +226,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
       </div>
 
       {/* Headquarters section with State & City */}
-      <div className="border-t border-slate-100 pt-4 mt-2">
+      <div className="border-t border-slate-100 pt-4 mt-2 pb-24">
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
           Headquarters <span className="text-rose-500">*</span>
         </label>
@@ -263,7 +263,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
             </div>
 
             {showStateDropdown && filteredStates.length > 0 && (
-              <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
+              <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
                 {filteredStates.map((s) => (
                   <button
                     key={s}
@@ -317,7 +317,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
             </div>
 
             {showCityDropdown && filteredCities.length > 0 && (
-              <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
+              <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-100">
                 {filteredCities.map((c) => (
                   <button
                     key={c}
