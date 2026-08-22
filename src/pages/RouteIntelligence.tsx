@@ -364,26 +364,6 @@ export const RouteIntelligence: React.FC = () => {
 
           </div>
 
-          {/* Maritime Route Breakdown Alert */}
-          {analysisResult.maritime_info && (
-            <div className="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs font-mono flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold shrink-0">
-                  ⚓
-                </div>
-                <div>
-                  <span className="font-bold text-teal-800 uppercase block">MULTIMODAL MARITIME OCEAN CORRIDOR</span>
-                  <span>
-                    Inland Transfer ➔ Departure Seaport: <strong>{analysisResult.maritime_info.originPortName}</strong> ➔ Open Sea Shipping Route ➔ Arrival Seaport: <strong>{analysisResult.maritime_info.destPortName}</strong> ➔ Inland Delivery
-                  </span>
-                </div>
-              </div>
-              <Badge variant="info" className="bg-teal-100 text-teal-800 border-teal-300 shrink-0 font-mono text-[10px]">
-                Coastal Waters Verified
-              </Badge>
-            </div>
-          )}
-
           {/* Interactive Map */}
           <div className="space-y-2">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -396,7 +376,6 @@ export const RouteIntelligence: React.FC = () => {
               destCoords={analysisResult.destinationCoords}
               routeCoordinates={analysisResult.route_coordinates}
               transportMode={analysisResult.transport_mode}
-              maritimeInfo={analysisResult.maritime_info}
               onMapClick={handleMapClick}
               clickSelectionTarget={clickTarget}
             />

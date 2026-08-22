@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { MaritimePortInfo } from '../../services/routing';
 
 interface RouteMapProps {
   originName: string;
@@ -9,7 +8,6 @@ interface RouteMapProps {
   destCoords: [number, number];
   routeCoordinates: Array<[number, number]>;
   transportMode: 'Road' | 'Rail' | 'Sea' | 'Air';
-  maritimeInfo?: MaritimePortInfo;
   onMapClick?: (lat: number, lon: number) => void;
   clickSelectionTarget?: 'origin' | 'destination' | null;
 }
@@ -21,7 +19,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   destCoords,
   routeCoordinates,
   transportMode,
-  maritimeInfo,
   onMapClick,
   clickSelectionTarget,
 }) => {
@@ -101,36 +98,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       </div>
     `);
 
-    // Port Markers if Sea mode
-    if (transportMode === 'Sea' && maritimeInfo) {
-      const portIcon = L.divIcon({
-        className: 'custom-leaflet-marker',
-        html: `
-          <div class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white font-bold text-xs shadow-md border-2 border-white ring-2 ring-teal-300">
-            ⚓
-          </div>
-        `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      });
-
-      const port1Marker = L.marker(maritimeInfo.originPortCoords, { icon: portIcon }).addTo(map);
-      port1Marker.bindPopup(`
-        <div class="font-sans text-xs p-1">
-          <strong class="text-teal-700 block uppercase font-mono">Departure Seaport Terminal</strong>
-          <span class="text-slate-900 font-bold">${maritimeInfo.originPortName}</span>
-        </div>
-      `);
-
-      const port2Marker = L.marker(maritimeInfo.destPortCoords, { icon: portIcon }).addTo(map);
-      port2Marker.bindPopup(`
-        <div class="font-sans text-xs p-1">
-          <strong class="text-teal-700 block uppercase font-mono">Arrival Seaport Terminal</strong>
-          <span class="text-slate-900 font-bold">${maritimeInfo.destPortName}</span>
-        </div>
-      `);
-    }
-
     // Polyline styling according to transport mode
     let dashArray: string | undefined = undefined;
     let color = '#0284c7'; // Sky 600
@@ -142,7 +109,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       dashArray = '12, 6';
       color = '#0284c7'; // Sky 600
     } else if (transportMode === 'Sea') {
-      dashArray = '8, 6';
+      dashArray = '6, 6';
       color = '#0d9488'; // Teal 600
     }
 
@@ -161,28 +128,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     return () => {
       if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.off();
-          mapInstanceRef.current.remove();
-        } catch (e) {
-          // Ignore Leaflet unmount animation race condition
-        }
+        mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [
-    originName,
-    destName,
-    originCoords[0],
-    originCoords[1],
-    destCoords[0],
-    destCoords[1],
-    routeCoordinates.length,
-    transportMode,
-    maritimeInfo?.originPortName,
-    maritimeInfo?.destPortName,
-    onMapClick,
-  ]);
+  }, [originName, destName, originCoords, destCoords, routeCoordinates, transportMode, onMapClick]);
 
   return (
     <div className="relative w-full h-[480px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 group">
@@ -209,13 +159,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           <span className="w-3 h-3 rounded-full bg-emerald-600 border border-white" />
           <span className="text-slate-700 font-semibold">{originName} (Start A)</span>
         </div>
-
-        {transportMode === 'Sea' && maritimeInfo && (
-          <div className="flex items-center gap-1.5 text-teal-700 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-            <span>⚓ {maritimeInfo.originPortName} ➔ {maritimeInfo.destPortName}</span>
-          </div>
-        )}
-
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-sky-600 border border-white" />
           <span className="text-slate-700 font-semibold">{destName} (End B)</span>

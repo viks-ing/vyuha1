@@ -5,7 +5,7 @@ import { OnboardingProgress } from '../components/onboarding/OnboardingProgress'
 import { CompanyInformationStep } from '../components/onboarding/CompanyInformation';
 import { SupplyChainProfileStep } from '../components/onboarding/SupplyChainProfileStep';
 import { BusinessConstraintsStep } from '../components/onboarding/BusinessConstraintsStep';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { CompanyInformationData, SupplyChainProfileData, BusinessConstraintsData } from '../types';
 
 export const Onboarding: React.FC = () => {
@@ -47,6 +47,17 @@ export const Onboarding: React.FC = () => {
       {/* Background Glow Decorations */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Back button above card */}
+      <div className="w-full max-w-2xl mb-4 self-center relative z-10">
+        <button
+          onClick={() => navigate(-1)}
+          className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Go Back</span>
+        </button>
+      </div>
 
       {/* Main Centered Onboarding Card Container */}
       <div className="w-full max-w-2xl glass-card bg-white rounded-2xl p-6 sm:p-10 shadow-xl border border-slate-200 relative z-10">

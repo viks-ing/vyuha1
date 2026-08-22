@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, Cpu, Activity, TrendingUp } from 'lucide-react';
+import { ShieldAlert, Cpu, Activity, TrendingUp, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   title,
   subtitle,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full bg-slate-50 text-slate-800 flex flex-col justify-between relative overflow-hidden">
       {/* Background ambient lighting effects */}
@@ -30,12 +33,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </span>
         </Link>
 
-        <Link
-          to="/"
-          className="text-xs font-mono text-slate-600 hover:text-sky-600 transition-colors flex items-center gap-1.5 font-semibold"
+        <button
+          onClick={() => navigate(-1)}
+          className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
         >
-          &larr; Return to Home
-        </Link>
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Go Back</span>
+        </button>
       </header>
 
       {/* Main Split Content Container */}
