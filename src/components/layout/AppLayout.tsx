@@ -26,15 +26,20 @@ export const AppLayout: React.FC = () => {
           onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
         />
 
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6 overflow-x-hidden">
-          <button
-            onClick={() => navigate(-1)}
-            className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            <span>Go Back</span>
-          </button>
-          <Outlet />
+        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto flex flex-col justify-between space-y-8 overflow-x-hidden">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          
+          <div className="pt-6 border-t border-slate-200/60 flex justify-start">
+            <button
+              onClick={() => navigate(-1)}
+              className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span>Go Back</span>
+            </button>
+          </div>
         </main>
 
         <footer className="border-t border-slate-200 py-4 px-8 text-center text-xs text-slate-500 bg-white">
