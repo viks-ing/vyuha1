@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Zap, Play, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, RefreshCw, BarChart2 } from 'lucide-react';
+import { Zap, Play, CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
 import { formatINR } from '../lib/utils';
 import { useCompany } from '../context/CompanyContext';
 import { analyzeRisk } from '../services/riskApi';
 
 export const NewAnalysis: React.FC = () => {
-  const { showToast } = useCompany();
+  const { company, showToast } = useCompany();
 
   const [form, setForm] = useState({
     analysisName: 'Q3 Monsoon Freight Disruption Audit',
     period: 'Q3 2026 (Jul - Sep)',
     scenario: 'Monsoon Heavy Rainfall + Highway Closures',
     region: 'Western & Southern India Corridors',
+    transportMode: (company.profile?.primaryTransportMode as any) || 'Road',
+    supplierCount: company.profile?.supplierCount || 5,
+    deliveryDistanceKm: company.profile?.deliveryDistanceKm || 650,
+    averageLeadTimeDays: company.profile?.averageLeadTimeDays || 14,
+    maxAdditionalBudget: company.constraints?.maxAdditionalBudget || 20000,
   });
 
   const [isRunning, setIsRunning] = useState(false);
@@ -28,17 +33,28 @@ export const NewAnalysis: React.FC = () => {
     setResult(null);
 
     try {
-      // Call real Python FastAPI trained ML models
+      // Dynamic scenario parameter mapping
+      const isMonsoon = form.scenario.includes('Monsoon');
+      const isPort = form.scenario.includes('Port');
+      const isDiesel = form.scenario.includes('Diesel');
+      const isSupplier = form.scenario.includes('Supplier');
+
+      const weatherRisk = isMonsoon ? 90.0 : 40.0;
+      const portCongestion = isPort ? 9.2 : 4.5;
+      const supplierDep = isSupplier ? 0.90 : Math.min(0.85, (form.supplierCount / 15));
+
+      // Call Python FastAPI trained ML models with user's exact dynamic inputs
       const apiResult = await analyzeRisk({
-        supplierCount: 4,
-        primaryTransportMode: 'Road',
-        averageLeadTimeDays: 14.0,
-        deliveryDistanceKm: 450.0,
+        supplierCount: Number(form.supplierCount),
+        primaryTransportMode: form.transportMode,
+        averageLeadTimeDays: Number(form.averageLeadTimeDays),
+        deliveryDistanceKm: Number(form.deliveryDistanceKm),
         maxAcceptableDelayDays: 3,
-        maxAdditionalBudget: 15000.0,
-        supplierDependencyRatio: 0.75,
-        weatherRiskScore: form.scenario.includes('Monsoon') ? 85.0 : 45.0,
-        portCongestionIndex: form.scenario.includes('Port') ? 8.5 : 4.0
+        maxAdditionalBudget: Number(form.maxAdditionalBudget),
+        supplierDependencyRatio: supplierDep,
+        weatherRiskScore: weatherRisk,
+        portCongestionIndex: portCongestion,
+        shipmentWeightKg: isDiesel ? 5000.0 : 1500.0,
       });
 
       setIsRunning(false);
@@ -51,10 +67,10 @@ export const NewAnalysis: React.FC = () => {
         confidence: '96.4%',
         recommendations: apiResult.recommendations,
       });
-      showToast('Live ML risk analysis completed successfully!');
+      showToast(`Dynamic ML Analysis completed! Risk Score: ${apiResult.riskScore}/100`);
     } catch (err: any) {
       setIsRunning(false);
-      showToast(`ML Analysis Failed: ${err?.message || 'Check backend status'}`);
+      showToast(`ML Analysis Error: ${err?.message || 'Failed to analyze'}`);
     }
   };
 
@@ -68,19 +84,19 @@ export const NewAnalysis: React.FC = () => {
         </div>
         <h2 className="text-2xl font-bold text-slate-900">New Supply Chain Analysis</h2>
         <p className="text-sm text-slate-600">
-          Analyze your supply chain against current economic, logistics, infrastructure, and environmental conditions.
+          Run personalized ML predictions by tuning operational parameters, distance, transport mode, and environmental scenarios.
         </p>
       </div>
 
       {/* Configuration Card */}
-      <Card className="border-sky-200">
+      <Card className="border-sky-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-bold text-slate-900">Analysis Configuration</CardTitle>
-          <CardDescription>Configure simulation inputs and target timeframes for ML risk projection</CardDescription>
+          <CardTitle className="text-lg font-bold text-slate-900">Dynamic Analysis Configuration</CardTitle>
+          <CardDescription>Adjust operational parameters to trigger real-time ML risk model predictions</CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleRunAnalysis} className="space-y-4">
+          <form onSubmit={handleRunAnalysis} className="space-y-5">
             <Input
               label="Analysis Run Name"
               value={form.analysisName}
@@ -101,6 +117,54 @@ export const NewAnalysis: React.FC = () => {
               />
 
               <Select
+                label="Primary Transport Mode"
+                value={form.transportMode}
+                onChange={(e) => setForm({ ...form, transportMode: e.target.value })}
+                options={[
+                  { value: 'Road', label: 'Road Transport (Trucking)' },
+                  { value: 'Rail', label: 'Rail Freight (Indian Railways DFC)' },
+                  { value: 'Sea', label: 'Maritime / Coastal Shipping' },
+                  { value: 'Air', label: 'Express Air Freight' },
+                  { value: 'Multimodal', label: 'Multimodal Integrated' },
+                ]}
+              />
+            </div>
+
+            {/* Dynamic Numeric Inputs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <Input
+                label="Delivery Distance (KM)"
+                type="number"
+                min="10"
+                max="10000"
+                value={form.deliveryDistanceKm}
+                onChange={(e) => setForm({ ...form, deliveryDistanceKm: Number(e.target.value) })}
+                required
+              />
+
+              <Input
+                label="Supplier Lead Time (Days)"
+                type="number"
+                min="1"
+                max="120"
+                value={form.averageLeadTimeDays}
+                onChange={(e) => setForm({ ...form, averageLeadTimeDays: Number(e.target.value) })}
+                required
+              />
+
+              <Input
+                label="Active Suppliers Count"
+                type="number"
+                min="1"
+                max="100"
+                value={form.supplierCount}
+                onChange={(e) => setForm({ ...form, supplierCount: Number(e.target.value) })}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
                 label="Target Transit Region"
                 value={form.region}
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
@@ -111,54 +175,56 @@ export const NewAnalysis: React.FC = () => {
                   { value: 'Nationwide All-Routes', label: 'Nationwide All-Routes' },
                 ]}
               />
+
+              <Select
+                label="Environmental / Economic Disruption Scenario"
+                value={form.scenario}
+                onChange={(e) => setForm({ ...form, scenario: e.target.value })}
+                options={[
+                  { value: 'Monsoon Heavy Rainfall + Highway Closures', label: 'Monsoon Heavy Rainfall + Highway Closures' },
+                  { value: 'Commercial Diesel Price Surge (+10%)', label: 'Commercial Diesel Price Surge (+10%)' },
+                  { value: 'Port Container Yard Bottlenecks (JNPT)', label: 'Port Container Yard Bottlenecks (JNPT)' },
+                  { value: 'Tier-1 Supplier Factory Shutdown', label: 'Tier-1 Supplier Factory Shutdown' },
+                ]}
+              />
             </div>
 
-            <Select
-              label="Primary Environmental / Economic Scenario"
-              value={form.scenario}
-              onChange={(e) => setForm({ ...form, scenario: e.target.value })}
-              options={[
-                { value: 'Monsoon Heavy Rainfall + Highway Closures', label: 'Monsoon Heavy Rainfall + Highway Closures' },
-                { value: 'Commercial Diesel Price Surge (+10%)', label: 'Commercial Diesel Price Surge (+10%)' },
-                { value: 'Port Container Yard Bottlenecks (JNPT)', label: 'Port Container Yard Bottlenecks (JNPT)' },
-                { value: 'Tier-1 Supplier Factory Shutdown', label: 'Tier-1 Supplier Factory Shutdown' },
-              ]}
-            />
-
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" size="lg" isLoading={isRunning} className="min-w-[200px]">
-                <Play className="w-4 h-4 mr-2 fill-current" /> Run Analysis
+            <div className="pt-2 flex justify-end">
+              <Button type="submit" size="lg" isLoading={isRunning} className="min-w-[220px]">
+                <Play className="w-4 h-4 mr-2 fill-current" /> Run Dynamic Analysis
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* Loading State Banner */}
+      {/* Loading Banner */}
       {isRunning && (
         <Card className="border-sky-300 bg-white text-center py-12 space-y-4 shadow-md">
           <RefreshCw className="w-10 h-10 animate-spin text-sky-600 mx-auto" />
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Running ML Supply Chain Prediction Model</h3>
+            <h3 className="text-lg font-bold text-slate-900">Executing ML Model Inference Engine</h3>
             <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1">
-              Correlating IMD weather satellite data, freight tariff indices, and road transit speed baselines...
+              Evaluated {form.deliveryDistanceKm}km via {form.transportMode} transport across {form.supplierCount} suppliers...
             </p>
           </div>
         </Card>
       )}
 
-      {/* Simulation Result Output Display */}
+      {/* Dynamic Results Display */}
       {result && !isRunning && (
         <Card className="border-emerald-300 bg-white animate-in fade-in slide-in-from-bottom-3 duration-500 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-200">
             <div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <CardTitle className="text-lg font-bold text-slate-900">Analysis Results Ready</CardTitle>
+                <CardTitle className="text-lg font-bold text-slate-900">ML Predictions Ready</CardTitle>
               </div>
-              <CardDescription className="mt-0.5">Ran for "{form.analysisName}"</CardDescription>
+              <CardDescription className="mt-0.5">Results for "{form.analysisName}" ({form.deliveryDistanceKm}km via {form.transportMode})</CardDescription>
             </div>
-            <Badge variant="High">Model Confidence: {result.confidence}</Badge>
+            <Badge variant={result.score >= 70 ? 'Critical' : result.score >= 40 ? 'High' : 'Low'}>
+              {result.status} ({result.score}/100)
+            </Badge>
           </CardHeader>
 
           <CardContent className="space-y-6 pt-6">
@@ -166,19 +232,19 @@ export const NewAnalysis: React.FC = () => {
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                 <p className="text-xs font-semibold text-slate-500 uppercase">Predicted Risk Score</p>
                 <p className="text-3xl font-extrabold text-amber-700">{result.score} <span className="text-xs text-slate-400">/100</span></p>
-                <Badge variant="High">{result.status}</Badge>
+                <Badge variant={result.score >= 70 ? 'Critical' : result.score >= 40 ? 'High' : 'Low'}>{result.status}</Badge>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                 <p className="text-xs font-semibold text-slate-500 uppercase">Projected Delay</p>
                 <p className="text-3xl font-extrabold text-slate-900">{result.expectedDelay} Days</p>
-                <p className="text-[11px] text-amber-700 font-medium">+2.2 days over baseline</p>
+                <p className="text-[11px] text-amber-700 font-medium">Based on {form.averageLeadTimeDays} days lead time</p>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                 <p className="text-xs font-semibold text-slate-500 uppercase">Projected Addl. Cost</p>
                 <p className="text-3xl font-extrabold text-slate-900">{formatINR(result.expectedCost)}</p>
-                <p className="text-[11px] text-rose-700 font-medium">+12% freight surge</p>
+                <p className="text-[11px] text-rose-700 font-medium">{form.deliveryDistanceKm}km transit tariff</p>
               </div>
             </div>
 
