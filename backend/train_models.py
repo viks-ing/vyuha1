@@ -1,311 +1,295 @@
 """
-Vyuha ML Training Pipeline
-===========================
-Generates calibrated multi-partner logistics datasets and trains 3 robust Scikit-Learn ML models:
-1. Delay Prediction Model (GradientBoostingRegressor)
-2. Cost Increase Prediction Model (GradientBoostingRegressor)
-3. Disruption Risk Classifier & Scorer (GradientBoostingClassifier + Regressor)
+Vyuha ML Real-Data Training Pipeline
+====================================
+1. Expanded DataCo Delay Model (Tuned GradientBoostingRegressor with OOF Target Encoding) -> delay_model.joblib
+2. DataCo Logistics Cost Estimator (GradientBoostingRegressor) -> cost_model.joblib
+3. Multi-Factor Real-Data Risk Scorer Engine (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
 """
 
 import os
 import sys
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier, RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, f1_score
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    average_precision_score,
+    brier_score_loss,
+    balanced_accuracy_score,
+    confusion_matrix
+)
 import joblib
 
-# Set UTF-8 stdout encoding for Windows
 sys.stdout.reconfigure(encoding='utf-8')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(MODEL_DIR, exist_ok=True)
+DATACO_PATH = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
 
-np.random.seed(42)
+def add_expanded_delay_features(df_in):
+    df = df_in.copy()
+    df['order_value'] = df['order_item_quantity'] * df['product_price']
+    df['scheduled_density'] = df['order_item_quantity'] / (df['scheduled_shipping_days'] + 0.1)
+    df['unit_item_value'] = df['product_price'] / (df['order_item_quantity'] + 0.1)
 
-# ==========================================
-# 1. DELAY PREDICTION MODEL
-# ==========================================
-def generate_and_train_delay_model():
-    print("\n--- Training Model 1: Supply Chain Delay Model ---")
-    n_samples = 15000
+    df['weather_x_port'] = df['weather_risk_score'] * df['port_congestion_index']
+    df['weather_x_geo'] = df['weather_risk_score'] * df['geopolitical_risk_score']
+    df['supplier_x_port'] = df['supplier_dependency_ratio'] * df['port_congestion_index']
+    df['scheduled_x_weather'] = df['scheduled_shipping_days'] * df['weather_risk_score']
 
-    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
-    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
-    
-    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
-    lead_times = np.random.uniform(0.5, 90.0, size=n_samples)
-    suppliers = np.random.randint(1, 40, size=n_samples)
-    weather_risk = np.random.uniform(0.0, 100.0, size=n_samples)
-    port_congestion = np.random.uniform(0.0, 10.0, size=n_samples)
-
-    # Realistic physical delay formula
-    mode_km_rate = np.where(modes == 'Air', 0.0003,
-                   np.where(modes == 'Rail', 0.0009,
-                   np.where(modes == 'Sea', 0.0022,
-                   np.where(modes == 'Multimodal', 0.0018, 0.0014)))) # Road
-
-    mode_base_delay = np.where(modes == 'Air', 0.1,
-                      np.where(modes == 'Rail', 0.5,
-                      np.where(modes == 'Sea', 2.0,
-                      np.where(modes == 'Multimodal', 1.0, 0.3)))) # Road
-
-    delay = (
-        mode_base_delay +
-        (distances * mode_km_rate) +
-        (lead_times * 0.04) +
-        (suppliers * 0.05) +
-        ((weather_risk / 100.0) * 2.2) +
-        (np.where(np.isin(modes, ['Sea', 'Multimodal']), port_congestion * 0.25, 0.0)) +
-        np.random.normal(0, 0.15, size=n_samples)
+    df['risk_composite_index'] = (
+        (df['weather_risk_score'] / 100.0) * 0.35 +
+        (df['geopolitical_risk_score'] / 100.0) * 0.25 +
+        (df['port_congestion_index'] / 10.0) * 0.25 +
+        (df['supplier_dependency_ratio']) * 0.15
     )
-    delay = np.maximum(0.1, np.round(delay, 2))
 
-    df_delay = pd.DataFrame({
-        'distance_km': np.round(distances, 1),
-        'lead_time_days': np.round(lead_times, 1),
-        'supplier_count': suppliers,
-        'transport_mode': modes,
-        'weather_risk_score': np.round(weather_risk, 1),
-        'port_congestion_index': np.round(port_congestion, 1),
-        'predicted_delay_days': delay
-    })
+    df['region_x_mode'] = df['order_region'].astype(str) + "_" + df['shipping_mode'].astype(str)
+    df['category_x_mode'] = df['product_category'].astype(str) + "_" + df['shipping_mode'].astype(str)
+    return df
 
-    csv_path = os.path.join(DATA_DIR, "logistics_delay_dataset.csv")
-    df_delay.to_csv(csv_path, index=False)
-    print(f"Dataset 1 saved to {csv_path} ({len(df_delay)} rows)")
-
-    X = df_delay[['distance_km', 'lead_time_days', 'supplier_count', 'transport_mode', 'weather_risk_score', 'port_congestion_index']]
-    y = df_delay['predicted_delay_days']
-
-    cat_cols = ['transport_mode']
-    num_cols = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'port_congestion_index']
-
-    preprocessor = ColumnTransformer(transformers=[
+def get_base_preprocessor():
+    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
+    cat_cols = ['shipping_mode', 'product_category', 'order_region']
+    return ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_cols),
         ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
     ])
 
-    reg_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    reg_pipeline.fit(X_train, y_train)
-    y_pred = reg_pipeline.predict(X_test)
-    mae = mean_absolute_error(y_test, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    print(f"Delay Model Metrics -> MAE: {mae:.3f} days | RMSE: {rmse:.3f} days | R² Score: {r2:.3f}")
-
-    delay_model_path = os.path.join(MODEL_DIR, "delay_model.joblib")
-    joblib.dump({
-        'regressor': reg_pipeline,
-        'features': list(X.columns)
-    }, delay_model_path)
-    print(f"Saved Delay Model artifact to {delay_model_path}")
-
-
-# ==========================================
-# 2. COST PREDICTION MODEL
-# ==========================================
-def generate_and_train_cost_model():
-    print("\n--- Training Model 2: Logistics Cost Prediction Model ---")
-    n_samples = 15000
-
-    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
-    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
+def train_dataco_delay_and_cost():
+    if not os.path.exists(DATACO_PATH):
+        raise FileNotFoundError(f"DataCo dataset not found at {DATACO_PATH}")
     
-    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
-    weight_kg = np.random.uniform(10.0, 10000.0, size=n_samples)
-    suppliers = np.random.randint(1, 30, size=n_samples)
-    traffic_density = np.random.uniform(1.0, 10.0, size=n_samples)
+    raw_df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+    df = add_expanded_delay_features(raw_df)
 
-    # Freight cost formula (INR)
-    per_km_rate = np.where(modes == 'Air', 35.0,
-                  np.where(modes == 'Road', 14.5,
-                  np.where(modes == 'Multimodal', 11.0,
-                  np.where(modes == 'Rail', 7.5, 4.0)))) # Sea
-
-    per_kg_rate = np.where(modes == 'Air', 12.0,
-                  np.where(modes == 'Road', 1.8,
-                  np.where(modes == 'Multimodal', 1.5,
-                  np.where(modes == 'Rail', 0.9, 0.4)))) # Sea
-
-    base_terminal_fee = np.where(modes == 'Air', 2500.0,
-                        np.where(modes == 'Sea', 3500.0,
-                        np.where(modes == 'Multimodal', 2000.0,
-                        np.where(modes == 'Rail', 1200.0, 600.0)))) # Road
-
-    cost = (
-        base_terminal_fee +
-        (distances * per_km_rate) +
-        (weight_kg * per_kg_rate) +
-        (suppliers * 450.0) +
-        (traffic_density * distances * 0.15) +
-        np.random.normal(0, 50.0, size=n_samples)
+    mode_rates = {
+        'Same Day': 0.15,
+        'First Class': 0.10,
+        'Second Class': 0.06,
+        'Standard Class': 0.04
+    }
+    df['shipping_cost'] = df.apply(
+        lambda r: round(250.0 + (r['order_item_quantity'] * r['product_price'] * mode_rates.get(r['shipping_mode'], 0.05)), 2),
+        axis=1
     )
-    cost = np.maximum(350.0, np.round(cost, 2))
 
-    df_cost = pd.DataFrame({
-        'distance_km': np.round(distances, 1),
-        'transport_mode': modes,
-        'shipment_weight_kg': np.round(weight_kg, 1),
-        'supplier_count': suppliers,
-        'traffic_density_index': np.round(traffic_density, 1),
-        'shipping_cost_inr': cost
-    })
+    # 1. EXPANDED DELAY PREDICTION MODEL WITH OUT-OF-FOLD TARGET ENCODING
+    feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price', 'order_value', 'scheduled_density', 'unit_item_value',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio',
+        'weather_x_port', 'weather_x_geo', 'supplier_x_port', 'scheduled_x_weather', 'risk_composite_index',
+        'shipping_mode', 'product_category', 'order_region', 'region_x_mode', 'category_x_mode'
+    ]
+    X_del = df[feature_cols]
+    y_delay = df['delay_days']
+    X_tr_d, X_te_d, y_tr_d, y_te_d = train_test_split(X_del, y_delay, test_size=0.2, random_state=42)
 
-    csv_path = os.path.join(DATA_DIR, "india_logistics_cost.csv")
-    df_cost.to_csv(csv_path, index=False)
-    print(f"Dataset 2 saved to {csv_path} ({len(df_cost)} rows)")
+    # Out-of-Fold Target Encoding on X_train strictly
+    kf_enc = KFold(n_splits=5, shuffle=True, random_state=42)
+    X_tr_enc = X_tr_d.copy()
+    X_te_enc = X_te_d.copy()
 
-    X = df_cost[['distance_km', 'transport_mode', 'shipment_weight_kg', 'supplier_count', 'traffic_density_index']]
-    y = df_cost['shipping_cost_inr']
+    X_tr_enc['mode_hist_delay'] = np.nan
+    X_tr_enc['region_hist_delay'] = np.nan
+    X_tr_enc['region_mode_hist_delay'] = np.nan
 
-    cat_cols = ['transport_mode']
-    num_cols = ['distance_km', 'shipment_weight_kg', 'supplier_count', 'traffic_density_index']
+    for tr_idx, val_idx in kf_enc.split(X_tr_d, y_tr_d):
+        fold_X_tr, fold_y_tr = X_tr_d.iloc[tr_idx], y_tr_d.iloc[tr_idx]
 
-    preprocessor = ColumnTransformer(transformers=[
-        ('num', StandardScaler(), num_cols),
+        m_means = fold_X_tr.groupby('shipping_mode').apply(lambda g: fold_y_tr.loc[g.index].mean()).to_dict()
+        r_means = fold_X_tr.groupby('order_region').apply(lambda g: fold_y_tr.loc[g.index].mean()).to_dict()
+        rm_means = fold_X_tr.groupby('region_x_mode').apply(lambda g: fold_y_tr.loc[g.index].mean()).to_dict()
+
+        val_indices = X_tr_d.index[val_idx]
+        X_tr_enc.loc[val_indices, 'mode_hist_delay'] = X_tr_d.loc[val_indices, 'shipping_mode'].map(m_means)
+        X_tr_enc.loc[val_indices, 'region_hist_delay'] = X_tr_d.loc[val_indices, 'order_region'].map(r_means)
+        X_tr_enc.loc[val_indices, 'region_mode_hist_delay'] = X_tr_d.loc[val_indices, 'region_x_mode'].map(rm_means)
+
+    overall_train_mean = y_tr_d.mean()
+    X_tr_enc['mode_hist_delay'] = X_tr_enc['mode_hist_delay'].fillna(overall_train_mean)
+    X_tr_enc['region_hist_delay'] = X_tr_enc['region_hist_delay'].fillna(overall_train_mean)
+    X_tr_enc['region_mode_hist_delay'] = X_tr_enc['region_mode_hist_delay'].fillna(overall_train_mean)
+
+    # Compute full training set mappings for test inference & production API deployment
+    full_mode_means = X_tr_d.groupby('shipping_mode').apply(lambda g: y_tr_d.loc[g.index].mean()).to_dict()
+    full_region_means = X_tr_d.groupby('order_region').apply(lambda g: y_tr_d.loc[g.index].mean()).to_dict()
+    full_rm_means = X_tr_d.groupby('region_x_mode').apply(lambda g: y_tr_d.loc[g.index].mean()).to_dict()
+
+    X_te_enc['mode_hist_delay'] = X_te_d['shipping_mode'].map(full_mode_means).fillna(overall_train_mean)
+    X_te_enc['region_hist_delay'] = X_te_d['order_region'].map(full_region_means).fillna(overall_train_mean)
+    X_te_enc['region_mode_hist_delay'] = X_te_d['region_x_mode'].map(full_rm_means).fillna(overall_train_mean)
+
+    cat_cols = ['shipping_mode', 'product_category', 'order_region', 'region_x_mode', 'category_x_mode']
+    enc_feature_cols = feature_cols + ['mode_hist_delay', 'region_hist_delay', 'region_mode_hist_delay']
+    enc_num_cols = [c for c in enc_feature_cols if c not in cat_cols]
+
+    delay_preprocessor = ColumnTransformer(transformers=[
+        ('num', StandardScaler(), enc_num_cols),
         ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
     ])
 
-    cost_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    cost_pipeline.fit(X_train, y_train)
-    y_pred = cost_pipeline.predict(X_test)
-    mae = mean_absolute_error(y_test, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    print(f"Cost Model Metrics  -> MAE: INR {mae:.2f} | RMSE: INR {rmse:.2f} | R² Score: {r2:.3f}")
-
-    cost_model_path = os.path.join(MODEL_DIR, "cost_model.joblib")
-    joblib.dump({
-        'regressor': cost_pipeline,
-        'features': list(X.columns)
-    }, cost_model_path)
-    print(f"Saved Cost Model artifact to {cost_model_path}")
-
-
-# ==========================================
-# 3. DISRUPTION RISK MODEL
-# ==========================================
-def generate_and_train_risk_model():
-    print("\n--- Training Model 3: Disruption Risk Model ---")
-    n_samples = 15000
-
-    transport_modes = ['Road', 'Rail', 'Sea', 'Air', 'Multimodal']
-    modes = np.random.choice(transport_modes, size=n_samples, p=[0.45, 0.25, 0.15, 0.08, 0.07])
-    
-    distances = np.random.uniform(5.0, 4500.0, size=n_samples)
-    lead_times = np.random.uniform(0.5, 90.0, size=n_samples)
-    suppliers = np.random.randint(1, 40, size=n_samples)
-    weather_risk = np.random.uniform(0.0, 100.0, size=n_samples)
-    geo_risk = np.random.uniform(0.0, 100.0, size=n_samples)
-    port_congestion = np.random.uniform(0.0, 10.0, size=n_samples)
-    supplier_dep = np.random.uniform(0.05, 0.95, size=n_samples)
-
-    # Risk Score continuous calculation (0 to 100)
-    raw_risk = (
-        ((distances / 4000.0) * 18.0) +
-        ((lead_times / 60.0) * 16.0) +
-        (supplier_dep * 22.0) +
-        ((weather_risk / 100.0) * 20.0) +
-        ((geo_risk / 100.0) * 10.0) +
-        (np.where(np.isin(modes, ['Sea', 'Multimodal']), (port_congestion / 10.0) * 14.0, (port_congestion / 10.0) * 4.0)) +
-        (np.where(modes == 'Road', 6.0, np.where(modes == 'Sea', 8.0, 2.0))) +
-        np.random.normal(0, 1.5, size=n_samples)
+    tuned_gbr = GradientBoostingRegressor(
+        n_estimators=250, learning_rate=0.04, max_depth=5, subsample=0.85, random_state=42
     )
-    raw_risk = np.clip(np.round(raw_risk, 1), 5.0, 98.0)
 
-    # 0 = Low Risk (< 40), 1 = Medium Risk (40-69), 2 = High Risk (>= 70)
-    risk_level = np.where(raw_risk < 40.0, 0, np.where(raw_risk < 70.0, 1, 2))
-
-    df_risk = pd.DataFrame({
-        'distance_km': np.round(distances, 1),
-        'lead_time_days': np.round(lead_times, 1),
-        'supplier_count': suppliers,
-        'transport_mode': modes,
-        'weather_risk_score': np.round(weather_risk, 1),
-        'geopolitical_risk_score': np.round(geo_risk, 1),
-        'port_congestion_index': np.round(port_congestion, 1),
-        'supplier_dependency_ratio': np.round(supplier_dep, 2),
-        'risk_score': raw_risk,
-        'disruption_risk_level': risk_level
-    })
-
-    csv_path = os.path.join(DATA_DIR, "supply_chain_disruption_risk.csv")
-    df_risk.to_csv(csv_path, index=False)
-    print(f"Dataset 3 saved to {csv_path} ({len(df_risk)} rows)")
-
-    X = df_risk[['distance_km', 'lead_time_days', 'supplier_count', 'transport_mode', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']]
-    y = df_risk['disruption_risk_level']
-
-    cat_cols = ['transport_mode']
-    num_cols = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
-
-    preprocessor = ColumnTransformer(transformers=[
-        ('num', StandardScaler(), num_cols),
-        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+    delay_pipeline = Pipeline([
+        ('preprocessor', delay_preprocessor),
+        ('regressor', tuned_gbr)
     ])
 
-    # Multi-class Classifier
-    clf_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42))
-    ])
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_r2_scores = cross_val_score(delay_pipeline, X_tr_enc, y_tr_d, cv=kf, scoring='r2')
+    
+    delay_pipeline.fit(X_tr_enc, y_tr_d)
+    tr_pred_del = delay_pipeline.predict(X_tr_enc)
+    te_pred_del = delay_pipeline.predict(X_te_enc)
 
-    # Direct Regressor for exact continuous 0-100 Risk Score
-    reg_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
+    mean_delay_baseline = np.full_like(y_te_d, fill_value=y_tr_d.mean())
+    baseline_mae_delay = mean_absolute_error(y_te_d, mean_delay_baseline)
+
+    print("\n[MODEL 1 — EXPANDED DELAY PREDICTION MODEL (OOF Target Encoded)]")
+    print(f"  5-Fold CV Mean R²    : {cv_r2_scores.mean():.4f} ± {cv_r2_scores.std():.4f}")
+    print(f"  Train MAE / R²       : {mean_absolute_error(y_tr_d, tr_pred_del):.4f} days | R²: {r2_score(y_tr_d, tr_pred_del):.4f}")
+    print(f"  Test MAE / RMSE / R² : {mean_absolute_error(y_te_d, te_pred_del):.4f} days | RMSE: {np.sqrt(mean_squared_error(y_te_d, te_pred_del)):.4f} days | R²: {r2_score(y_te_d, te_pred_del):.4f}")
+    print(f"  Mean Baseline MAE    : {baseline_mae_delay:.4f} days (Model MAE Improvement: {baseline_mae_delay - mean_absolute_error(y_te_d, te_pred_del):+.4f} days)")
+    print(f"  Generalization Gap   : {r2_score(y_tr_d, tr_pred_del) - r2_score(y_te_d, te_pred_del):.4f}")
+
+    joblib.dump({
+        'regressor': delay_pipeline,
+        'features': enc_feature_cols,
+        'mode_means': full_mode_means,
+        'region_means': full_region_means,
+        'rm_means': full_rm_means,
+        'overall_mean': float(overall_train_mean)
+    }, os.path.join(MODEL_DIR, "delay_model.joblib"))
+
+    # 2. LOGISTICS COST ESTIMATOR MODEL
+    cost_feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price',
+        'shipping_mode', 'product_category', 'order_region',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio'
+    ]
+    X_c = df[cost_feature_cols]
+    y_cost = df['shipping_cost']
+    X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X_c, y_cost, test_size=0.2, random_state=42)
+
+    cost_pipeline = Pipeline([
+        ('preprocessor', get_base_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    y_reg_train = df_risk.loc[X_train.index, 'risk_score']
-    y_reg_test = df_risk.loc[X_test.index, 'risk_score']
+    cv_r2_cost = cross_val_score(cost_pipeline, X_tr_c, y_tr_c, cv=kf, scoring='r2')
+    cost_pipeline.fit(X_tr_c, y_tr_c)
 
-    clf_pipeline.fit(X_train, y_train)
-    reg_pipeline.fit(X_train, y_reg_train)
+    tr_pred_cost = cost_pipeline.predict(X_tr_c)
+    te_pred_cost = cost_pipeline.predict(X_te_c)
 
-    y_pred_clf = clf_pipeline.predict(X_test)
-    y_pred_reg = reg_pipeline.predict(X_test)
+    mean_cost_baseline = np.full_like(y_te_c, fill_value=y_tr_c.mean())
+    baseline_mae_cost = mean_absolute_error(y_te_c, mean_cost_baseline)
 
-    acc = accuracy_score(y_test, y_pred_clf)
-    f1 = f1_score(y_test, y_pred_clf, average='weighted')
-    reg_mae = mean_absolute_error(y_reg_test, y_pred_reg)
-    reg_rmse = np.sqrt(mean_squared_error(y_reg_test, y_pred_reg))
-    reg_r2 = r2_score(y_reg_test, y_pred_reg)
+    print("\n[MODEL 2 — LOGISTICS COST ESTIMATOR MODEL (Scenario-Based)]")
+    print(f"  5-Fold CV Mean R²    : {cv_r2_cost.mean():.4f} ± {cv_r2_cost.std():.4f}")
+    print(f"  Train MAE / R²       : INR {mean_absolute_error(y_tr_c, tr_pred_cost):.2f} | R²: {r2_score(y_tr_c, tr_pred_cost):.4f}")
+    print(f"  Test MAE / RMSE / R² : INR {mean_absolute_error(y_te_c, te_pred_cost):.2f} | RMSE: INR {np.sqrt(mean_squared_error(y_te_c, te_pred_cost)):.2f} | R²: {r2_score(y_te_c, te_pred_cost):.4f}")
+    print(f"  Mean Baseline MAE    : INR {baseline_mae_cost:.2f} (Model MAE Improvement: INR {baseline_mae_cost - mean_absolute_error(y_te_c, te_pred_cost):+.2f})")
+    print(f"  Classification Note  : Scenario-Based Cost Estimator (Derived freight rate contract)")
 
-    print(f"Risk Classifier Metrics -> Accuracy: {acc * 100:.2f}% | F1 Score (Weighted): {f1:.3f}")
-    print(f"Risk Scorer Metrics     -> MAE: {reg_mae:.2f} pts | RMSE: {reg_rmse:.2f} pts | R² Score: {reg_r2:.3f}")
+    joblib.dump({'regressor': cost_pipeline, 'features': cost_feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
-    risk_model_path = os.path.join(MODEL_DIR, "risk_model.joblib")
+def train_genuine_real_data_risk_engine():
+    print("\n[MODEL 3 — VYUHA REAL-DATA ML RISK ENGINE]")
+    df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+
+    feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price',
+        'shipping_mode', 'product_category', 'order_region',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio'
+    ]
+    X = df[feature_cols]
+    y = df['late_delivery_risk']
+
+    base_gbc = GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42)
+    calibrated_gbc = CalibratedClassifierCV(estimator=base_gbc, cv=5, method='sigmoid')
+
+    risk_pipeline = Pipeline([
+        ('preprocessor', get_base_preprocessor()),
+        ('classifier', calibrated_gbc)
+    ])
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_auc_scores = cross_val_score(risk_pipeline, X_train, y_train, cv=skf, scoring='roc_auc')
+
+    risk_pipeline.fit(X_train, y_train)
+
+    tr_pred = risk_pipeline.predict(X_train)
+    te_pred = risk_pipeline.predict(X_test)
+    te_proba = risk_pipeline.predict_proba(X_test)[:, 1]
+
+    maj_baseline = y_test.value_counts(normalize=True).max() * 100
+    tr_acc = accuracy_score(y_train, tr_pred)
+    te_acc = accuracy_score(y_test, te_pred)
+    bal_acc = balanced_accuracy_score(y_test, te_pred)
+
+    te_prec = precision_score(y_test, te_pred, zero_division=0)
+    te_rec = recall_score(y_test, te_pred, zero_division=0)
+    spec = recall_score(y_test, te_pred, pos_label=0, zero_division=0)
+
+    tr_f1 = f1_score(y_train, tr_pred, average='weighted', zero_division=0)
+    te_f1 = f1_score(y_test, te_pred, average='weighted', zero_division=0)
+    te_f1_macro = f1_score(y_test, te_pred, average='macro', zero_division=0)
+
+    auc = roc_auc_score(y_test, te_proba)
+    pr_auc = average_precision_score(y_test, te_proba)
+    brier = brier_score_loss(y_test, te_proba)
+    cm = confusion_matrix(y_test, te_pred)
+
+    print(f"  5-Fold CV Mean ROC-AUC: {cv_auc_scores.mean():.4f} ± {cv_auc_scores.std():.4f}")
+    print(f"  Majority Baseline Acc : {maj_baseline:.2f}%")
+    print(f"  Train Accuracy        : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}% (Lift: {te_acc*100 - maj_baseline:+.2f}%)")
+    print(f"  Balanced Accuracy     : {bal_acc*100:.2f}%")
+    print(f"  Class-1 Precision     : {te_prec:.4f} | Class-1 Recall: {te_rec:.4f} (FNR: {(1-te_rec)*100:.2f}%)")
+    print(f"  Class-0 Specificity   : {spec:.4f} (FPR: {(1-spec)*100:.2f}%)")
+    print(f"  Weighted F1           : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
+    print(f"  Calibrated ROC-AUC    : {auc:.4f}")
+    print(f"  Calibrated PR-AUC     : {pr_auc:.4f}")
+    print(f"  Calibrated Brier      : {brier:.4f}")
+    print(f"  Confusion Matrix      :\n{cm}")
+    print(f"  Generalization Gap    : {tr_acc - te_acc:.4f}")
+
+    risk_scorer_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
     joblib.dump({
-        'classifier': clf_pipeline,
-        'regressor': reg_pipeline,
-        'features': list(X.columns)
-    }, risk_model_path)
-    print(f"Saved Risk Model artifact to {risk_model_path}")
+        'classifier': risk_pipeline,
+        'features': feature_cols
+    }, risk_scorer_path)
 
+    joblib.dump({
+        'classifier': risk_pipeline,
+        'features': feature_cols
+    }, os.path.join(MODEL_DIR, "risk_model.joblib"))
+
+    print(f"✅ Saved genuine calibrated Risk Engine artifact to {risk_scorer_path}")
 
 if __name__ == "__main__":
-    print("==========================================")
-    print("VYUHA ML RETRAINING & CALIBRATION ENGINE")
-    print("==========================================")
-    generate_and_train_delay_model()
-    generate_and_train_cost_model()
-    generate_and_train_risk_model()
-    print("\n✅ All 3 ML Models Retrained & Serialized Successfully!")
+    print("==================================================")
+    print(" VYUHA ML DELAY MODEL EXPANSION TRAINING PIPELINE ")
+    print("==================================================")
+    train_dataco_delay_and_cost()
+    train_genuine_real_data_risk_engine()
+    print("\n✅ All Models Serialized & Validated Successfully!")

@@ -50,7 +50,9 @@ try:
     if os.path.exists(cost_path):
         cost_artifact = joblib.load(cost_path)
 
-    risk_path = os.path.join(MODEL_DIR, "risk_model.joblib")
+    risk_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
+    if not os.path.exists(risk_path):
+        risk_path = os.path.join(MODEL_DIR, "risk_model.joblib")
     if os.path.exists(risk_path):
         risk_artifact = joblib.load(risk_path)
     print("Vyuha ML Trained Models Loaded Successfully into FastAPI Backend!")
@@ -204,17 +206,66 @@ def analyze_risk(req: AnalysisRequest):
     predicted_cost = 15000.0
     calculated_risk = 72
 
+    def build_inference_df(artifact):
+        expected_feats = artifact.get('features', []) if artifact else []
+        mode_map = {'Road': 'Standard Class', 'Rail': 'Second Class', 'Sea': 'Standard Class', 'Air': 'Same Day'}
+        sched_days = max(1.0, float(lead_time_days))
+        qty = max(1, int(supplier_count))
+        price = max(10.0, float(weight_kg * 0.1))
+        w_score = float(weather_score)
+        g_score = float(geo_score)
+        p_index = float(port_congestion)
+        s_ratio = float(supplier_dep)
+
+        row = {
+            'scheduled_shipping_days': sched_days,
+            'order_item_quantity': qty,
+            'product_price': price,
+            'shipping_mode': mode_map.get(transport_mode, 'Standard Class'),
+            'product_category': 'Industrial Parts',
+            'order_region': 'South Asia'
+        }
+        if 'weather_risk_score' in expected_feats:
+            row['weather_risk_score'] = w_score
+            row['geopolitical_risk_score'] = g_score
+            row['port_congestion_index'] = p_index
+            row['supplier_dependency_ratio'] = s_ratio
+
+        if 'order_value' in expected_feats:
+            row['order_value'] = qty * price
+            row['scheduled_density'] = qty / (sched_days + 0.1)
+            row['unit_item_value'] = price / (qty + 0.1)
+            row['weather_x_port'] = w_score * p_index
+            row['weather_x_geo'] = w_score * g_score
+            row['supplier_x_port'] = s_ratio * p_index
+            row['scheduled_x_weather'] = sched_days * w_score
+            row['risk_composite_index'] = ((w_score / 100.0) * 0.35 + (g_score / 100.0) * 0.25 + (p_index / 10.0) * 0.25 + s_ratio * 0.15)
+            
+            s_mode = row['shipping_mode']
+            o_reg = row['order_region']
+            p_cat = row['product_category']
+            rm_key = f"{o_reg}_{s_mode}"
+            cat_m_key = f"{p_cat}_{s_mode}"
+            
+            row['region_x_mode'] = rm_key
+            row['category_x_mode'] = cat_m_key
+
+            if 'mode_hist_delay' in expected_feats:
+                m_means = artifact.get('mode_means', {})
+                r_means = artifact.get('region_means', {})
+                rm_means = artifact.get('rm_means', {})
+                o_mean = artifact.get('overall_mean', 2.5)
+
+                row['mode_hist_delay'] = m_means.get(s_mode, o_mean)
+                row['region_hist_delay'] = r_means.get(o_reg, o_mean)
+                row['region_mode_hist_delay'] = rm_means.get(rm_key, o_mean)
+
+        return pd.DataFrame([row])
+
     # 1. Delay Model Inference
     if delay_artifact and "regressor" in delay_artifact:
         try:
-            df_delay_in = pd.DataFrame([{
-                'distance_km': float(distance_km),
-                'lead_time_days': float(lead_time_days),
-                'supplier_count': int(supplier_count),
-                'transport_mode': transport_mode,
-                'weather_risk_score': float(weather_score),
-                'port_congestion_index': float(port_congestion)
-            }])
+            df_delay_in = build_inference_df(delay_artifact)
             pred_delay = delay_artifact['regressor'].predict(df_delay_in)[0]
             predicted_delay = float(round(max(0.1, float(pred_delay)), 1))
         except Exception as err:
@@ -223,40 +274,26 @@ def analyze_risk(req: AnalysisRequest):
     # 2. Cost Model Inference
     if cost_artifact and "regressor" in cost_artifact:
         try:
-            df_cost_in = pd.DataFrame([{
-                'distance_km': float(distance_km),
-                'transport_mode': transport_mode,
-                'shipment_weight_kg': float(weight_kg),
-                'supplier_count': int(supplier_count),
-                'traffic_density_index': 6.5
-            }])
+            df_cost_in = build_inference_df(cost_artifact)
             pred_cost = cost_artifact['regressor'].predict(df_cost_in)[0]
             predicted_cost = float(round(max(250.0, float(pred_cost)), 2))
         except Exception as err:
             print("Cost model inference error:", err)
 
-    # 3. Disruption Risk Model Inference
+    # 3. Genuine Real-Data ML Risk Engine Inference
     if risk_artifact:
         try:
-            df_risk_in = pd.DataFrame([{
-                'distance_km': float(distance_km),
-                'lead_time_days': float(lead_time_days),
-                'supplier_count': int(supplier_count),
-                'transport_mode': transport_mode,
-                'weather_risk_score': float(weather_score),
-                'geopolitical_risk_score': float(geo_score),
-                'port_congestion_index': float(port_congestion),
-                'supplier_dependency_ratio': float(supplier_dep)
-            }])
-            if 'regressor' in risk_artifact:
-                raw_pred = risk_artifact['regressor'].predict(df_risk_in)[0]
-                calculated_risk = int(np.clip(round(float(raw_pred)), 5, 98))
-            elif 'classifier' in risk_artifact:
-                pred_proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
-                calculated_risk = int(round(float(pred_proba[1] * 50 + pred_proba[2] * 100)))
-                calculated_risk = int(np.clip(calculated_risk, 5, 98))
+            df_risk_in = build_inference_df(risk_artifact)
+            if 'classifier' in risk_artifact:
+                proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
+                # P(Disruption) * 100 -> continuous statistical risk score
+                disruption_p = proba[1] if len(proba) > 1 else proba[0]
+                calculated_risk = int(np.clip(round(float(disruption_p * 100.0)), 0, 100))
+            elif 'regressor' in risk_artifact:
+                raw_risk = risk_artifact['regressor'].predict(df_risk_in)[0]
+                calculated_risk = int(np.clip(round(float(raw_risk)), 0, 100))
         except Exception as err:
-            print("Risk model inference error:", err)
+            print("Real-Data Risk Engine inference error:", err)
 
     # Risk Category mapping: <40 -> Low Risk, 40-69 -> Medium Risk, >=70 -> High Risk
     risk_category = "High Risk" if calculated_risk >= 70 else "Medium Risk" if calculated_risk >= 40 else "Low Risk"
