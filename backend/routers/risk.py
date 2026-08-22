@@ -234,10 +234,31 @@ def analyze_risk(req: AnalysisRequest):
         if 'order_value' in expected_feats:
             row['order_value'] = qty * price
             row['scheduled_density'] = qty / (sched_days + 0.1)
+            row['unit_item_value'] = price / (qty + 0.1)
             row['weather_x_port'] = w_score * p_index
             row['weather_x_geo'] = w_score * g_score
             row['supplier_x_port'] = s_ratio * p_index
             row['scheduled_x_weather'] = sched_days * w_score
+            row['risk_composite_index'] = ((w_score / 100.0) * 0.35 + (g_score / 100.0) * 0.25 + (p_index / 10.0) * 0.25 + s_ratio * 0.15)
+            
+            s_mode = row['shipping_mode']
+            o_reg = row['order_region']
+            p_cat = row['product_category']
+            rm_key = f"{o_reg}_{s_mode}"
+            cat_m_key = f"{p_cat}_{s_mode}"
+            
+            row['region_x_mode'] = rm_key
+            row['category_x_mode'] = cat_m_key
+
+            if 'mode_hist_delay' in expected_feats:
+                m_means = artifact.get('mode_means', {})
+                r_means = artifact.get('region_means', {})
+                rm_means = artifact.get('rm_means', {})
+                o_mean = artifact.get('overall_mean', 2.5)
+
+                row['mode_hist_delay'] = m_means.get(s_mode, o_mean)
+                row['region_hist_delay'] = r_means.get(o_reg, o_mean)
+                row['region_mode_hist_delay'] = rm_means.get(rm_key, o_mean)
 
         return pd.DataFrame([row])
 
