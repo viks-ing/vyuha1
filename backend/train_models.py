@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_absolute_error, r2_score, accuracy_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, f1_score
 import joblib
 
 # Set UTF-8 stdout encoding for Windows
@@ -100,7 +100,10 @@ def generate_and_train_delay_model():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     reg_pipeline.fit(X_train, y_train)
     y_pred = reg_pipeline.predict(X_test)
-    print(f"Delay Model MAE: {mean_absolute_error(y_test, y_pred):.3f} days, R2: {r2_score(y_test, y_pred):.3f}")
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+    print(f"Delay Model Metrics -> MAE: {mae:.3f} days | RMSE: {rmse:.3f} days | R² Score: {r2:.3f}")
 
     delay_model_path = os.path.join(MODEL_DIR, "delay_model.joblib")
     joblib.dump({
@@ -183,7 +186,10 @@ def generate_and_train_cost_model():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     cost_pipeline.fit(X_train, y_train)
     y_pred = cost_pipeline.predict(X_test)
-    print(f"Cost Model MAE: INR {mean_absolute_error(y_test, y_pred):.2f}, R2: {r2_score(y_test, y_pred):.3f}")
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+    print(f"Cost Model Metrics  -> MAE: INR {mae:.2f} | RMSE: INR {rmse:.2f} | R² Score: {r2:.3f}")
 
     cost_model_path = os.path.join(MODEL_DIR, "cost_model.joblib")
     joblib.dump({
@@ -277,8 +283,14 @@ def generate_and_train_risk_model():
     y_pred_clf = clf_pipeline.predict(X_test)
     y_pred_reg = reg_pipeline.predict(X_test)
 
-    print(f"Risk Classifier Accuracy: {accuracy_score(y_test, y_pred_clf):.3f}")
-    print(f"Risk Score Regressor MAE: {mean_absolute_error(y_reg_test, y_pred_reg):.2f} pts, R2: {r2_score(y_reg_test, y_pred_reg):.3f}")
+    acc = accuracy_score(y_test, y_pred_clf)
+    f1 = f1_score(y_test, y_pred_clf, average='weighted')
+    reg_mae = mean_absolute_error(y_reg_test, y_pred_reg)
+    reg_rmse = np.sqrt(mean_squared_error(y_reg_test, y_pred_reg))
+    reg_r2 = r2_score(y_reg_test, y_pred_reg)
+
+    print(f"Risk Classifier Metrics -> Accuracy: {acc * 100:.2f}% | F1 Score (Weighted): {f1:.3f}")
+    print(f"Risk Scorer Metrics     -> MAE: {reg_mae:.2f} pts | RMSE: {reg_rmse:.2f} pts | R² Score: {reg_r2:.3f}")
 
     risk_model_path = os.path.join(MODEL_DIR, "risk_model.joblib")
     joblib.dump({
