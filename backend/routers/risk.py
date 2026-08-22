@@ -94,6 +94,35 @@ def normalize_transport_mode(mode: str) -> str:
         return 'Air'
     return 'Road'
 
+def sanitize_and_rectify_features(req: AnalysisRequest) -> dict:
+    """
+    Sanitizes and rectifies incoming raw request data into realistic domain bounds.
+    Prevents unrealistic out-of-distribution inputs (e.g. 50,000 km routes, negative lead times)
+    from corrupting ML predictions.
+    """
+    supplier_count = int(np.clip(req.supplierCount, 0, 100))
+    lead_time_days = float(np.clip(req.averageLeadTimeDays, 0.5, 120.0))
+    distance_km = float(np.clip(req.deliveryDistanceKm, 5.0, 10000.0))
+    transport_mode = normalize_transport_mode(req.primaryTransportMode or 'Road')
+
+    supplier_dep = float(np.clip(getattr(req, 'supplierDependencyRatio', 0.75) or 0.75, 0.05, 0.95))
+    weather_score = float(np.clip(getattr(req, 'weatherRiskScore', 50.0) or 50.0, 0.0, 100.0))
+    port_congestion = float(np.clip(getattr(req, 'portCongestionIndex', 5.0) or 5.0, 0.0, 10.0))
+    geo_score = float(np.clip(getattr(req, 'geopoliticalRiskScore', 30.0) or 30.0, 0.0, 100.0))
+    weight_kg = float(np.clip(getattr(req, 'shipmentWeightKg', 1500.0) or 1500.0, 1.0, 50000.0))
+
+    return {
+        "supplier_count": supplier_count,
+        "lead_time_days": lead_time_days,
+        "distance_km": distance_km,
+        "transport_mode": transport_mode,
+        "supplier_dep": supplier_dep,
+        "weather_score": weather_score,
+        "port_congestion": port_congestion,
+        "geo_score": geo_score,
+        "weight_kg": weight_kg
+    }
+
 @router.get("/overview", response_model=RiskScoreData)
 def get_risk_overview():
     return RiskScoreData(
@@ -147,17 +176,17 @@ def get_alerts():
 
 @router.post("/analyze", response_model=AnalysisResponse)
 def analyze_risk(req: AnalysisRequest):
-    # Enforce non-negative bounds
-    supplier_count = max(0, req.supplierCount)
-    lead_time_days = max(0.1, req.averageLeadTimeDays)
-    distance_km = max(0.1, req.deliveryDistanceKm)
-    transport_mode = normalize_transport_mode(req.primaryTransportMode or 'Road')
-
-    supplier_dep = getattr(req, 'supplierDependencyRatio', 0.75) or 0.75
-    weather_score = getattr(req, 'weatherRiskScore', 50.0) or 50.0
-    port_congestion = getattr(req, 'portCongestionIndex', 5.0) or 5.0
-    geo_score = getattr(req, 'geopoliticalRiskScore', 30.0) or 30.0
-    weight_kg = getattr(req, 'shipmentWeightKg', 1500.0) or 1500.0
+    # Sanitize and rectify inputs
+    rectified = sanitize_and_rectify_features(req)
+    supplier_count = rectified["supplier_count"]
+    lead_time_days = rectified["lead_time_days"]
+    distance_km = rectified["distance_km"]
+    transport_mode = rectified["transport_mode"]
+    supplier_dep = rectified["supplier_dep"]
+    weather_score = rectified["weather_score"]
+    port_congestion = rectified["port_congestion"]
+    geo_score = rectified["geo_score"]
+    weight_kg = rectified["weight_kg"]
 
     predicted_delay = 2.5
     predicted_cost = 15000.0
