@@ -250,23 +250,20 @@ def analyze_risk(req: AnalysisRequest):
         except Exception as err:
             print("Cost model inference error:", err)
 
-    # 3. Dedicated Real-Data ML Risk Scorer Inference
-    if risk_artifact and "regressor" in risk_artifact:
+    # 3. Genuine Real-Data ML Risk Engine Inference
+    if risk_artifact:
         try:
-            df_risk_in = pd.DataFrame([{
-                'distance_km': float(distance_km),
-                'lead_time_days': float(lead_time_days),
-                'supplier_count': int(supplier_count),
-                'transport_mode': transport_mode,
-                'weather_risk_score': float(weather_score),
-                'geopolitical_risk_score': float(geo_score),
-                'port_congestion_index': float(port_congestion),
-                'supplier_dependency_ratio': float(supplier_dep)
-            }])
-            raw_risk = risk_artifact['regressor'].predict(df_risk_in)[0]
-            calculated_risk = int(np.clip(round(float(raw_risk)), 0, 100))
+            df_risk_in = build_inference_df(risk_artifact)
+            if 'classifier' in risk_artifact:
+                proba = risk_artifact['classifier'].predict_proba(df_risk_in)[0]
+                # P(Disruption) * 100 -> continuous statistical risk score
+                disruption_p = proba[1] if len(proba) > 1 else proba[0]
+                calculated_risk = int(np.clip(round(float(disruption_p * 100.0)), 0, 100))
+            elif 'regressor' in risk_artifact:
+                raw_risk = risk_artifact['regressor'].predict(df_risk_in)[0]
+                calculated_risk = int(np.clip(round(float(raw_risk)), 0, 100))
         except Exception as err:
-            print("Dedicated Risk Scorer inference error:", err)
+            print("Real-Data Risk Engine inference error:", err)
 
     # Risk Category mapping: <40 -> Low Risk, 40-69 -> Medium Risk, >=70 -> High Risk
     risk_category = "High Risk" if calculated_risk >= 70 else "Medium Risk" if calculated_risk >= 40 else "Low Risk"

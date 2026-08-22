@@ -1,9 +1,9 @@
 """
 Vyuha ML Real-Data Training Pipeline
 ====================================
-1. Delay Prediction Model (GradientBoostingRegressor) -> Real DataCo Dataset (delay_model.joblib)
-2. Logistics Cost Prediction Model (GradientBoostingRegressor) -> Real DataCo Dataset (cost_model.joblib)
-3. Dedicated Risk Engine Scorer (GradientBoostingRegressor) -> Real Disruption Dataset (risk_scorer.joblib)
+1. DataCo Delay Model (GradientBoostingRegressor) -> delay_model.joblib
+2. DataCo Logistics Cost Model (GradientBoostingRegressor) -> cost_model.joblib
+3. Genuine Real-Data ML Risk Scorer Engine (GradientBoostingClassifier) -> risk_scorer.joblib
 """
 
 import os
@@ -31,12 +31,16 @@ sys.stdout.reconfigure(encoding='utf-8')
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
 DATACO_PATH = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
-RISK_PATH = os.path.join(DATA_DIR, "supply_chain_disruption_risk.csv")
 
-# ==================================================
-# 1 & 2: DATACO DELAY AND COST MODELS (UNCHANGED)
-# ==================================================
-def train_dataco_models():
+def get_preprocessor():
+    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price']
+    cat_cols = ['shipping_mode', 'product_category', 'order_region']
+    return ColumnTransformer(transformers=[
+        ('num', StandardScaler(), num_cols),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+    ])
+
+def train_dataco_delay_and_cost():
     if not os.path.exists(DATACO_PATH):
         raise FileNotFoundError(f"DataCo dataset not found at {DATACO_PATH}")
     
@@ -56,20 +60,12 @@ def train_dataco_models():
     feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
     X = df[feature_cols]
 
-    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price']
-    cat_cols = ['shipping_mode', 'product_category', 'order_region']
-
-    preprocessor = ColumnTransformer(transformers=[
-        ('num', StandardScaler(), num_cols),
-        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
-    ])
-
     # 1. DELAY MODEL
     y_delay = df['delay_days']
     X_tr, X_te, y_tr, y_te = train_test_split(X, y_delay, test_size=0.2, random_state=42)
 
     delay_pipeline = Pipeline([
-        ('preprocessor', preprocessor),
+        ('preprocessor', get_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
     delay_pipeline.fit(X_tr, y_tr)
@@ -83,7 +79,7 @@ def train_dataco_models():
     X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X, y_cost, test_size=0.2, random_state=42)
 
     cost_pipeline = Pipeline([
-        ('preprocessor', preprocessor),
+        ('preprocessor', get_preprocessor()),
         ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
     ])
     cost_pipeline.fit(X_tr_c, y_tr_c)
@@ -92,76 +88,64 @@ def train_dataco_models():
     print(f"DataCo Cost Model  -> Test MAE: INR {mean_absolute_error(y_te_c, te_pred_cost):.2f} | Test R²: {r2_score(y_te_c, te_pred_cost):.4f}")
     joblib.dump({'regressor': cost_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
+def train_genuine_real_data_risk_engine():
+    print("\n--- Training Genuine Real-Data ML Risk Engine (GradientBoostingClassifier) ---")
+    df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+    print(f"Loaded Real DataCo Dataset ({len(df)} records)")
 
-# ==================================================
-# 3: DEDICATED REAL-DATA RISK ENGINE MODEL
-# ==================================================
-def train_dedicated_risk_scorer():
-    print("\n--- Training Dedicated ML Risk Engine (GradientBoostingRegressor) ---")
-    if not os.path.exists(RISK_PATH):
-        raise FileNotFoundError(f"Risk dataset not found at {RISK_PATH}")
+    # Define observed real disruption target (1 if delay > 3.0 days, 0 otherwise)
+    df['disruption_occurrence'] = (df['delay_days'] > 3.0).astype(int)
 
-    df_risk = pd.read_csv(RISK_PATH).dropna().drop_duplicates()
-    print(f"Loaded Disruption Risk Dataset ({len(df_risk)} records)")
-
-    # SAFE PRE-DISRUPTION FEATURES
-    num_cols = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
-    cat_cols = ['transport_mode']
-    feature_cols = num_cols + cat_cols
-
-    X = df_risk[feature_cols]
-    y = df_risk['risk_score'] # Continuous 0-100 score target
-
-    preprocessor = ColumnTransformer(transformers=[
-        ('num', StandardScaler(), num_cols),
-        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
-    ])
+    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
+    X = df[feature_cols]
+    y = df['disruption_occurrence']
 
     risk_pipeline = Pipeline([
-        ('preprocessor', preprocessor),
-        ('regressor', GradientBoostingRegressor(n_estimators=120, max_depth=4, random_state=42))
+        ('preprocessor', get_preprocessor()),
+        ('classifier', GradientBoostingClassifier(n_estimators=120, max_depth=4, random_state=42))
     ])
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
     risk_pipeline.fit(X_train, y_train)
 
     tr_pred = risk_pipeline.predict(X_train)
     te_pred = risk_pipeline.predict(X_test)
+    te_proba = risk_pipeline.predict_proba(X_test)[:, 1]
 
-    tr_mae = mean_absolute_error(y_train, tr_pred)
-    te_mae = mean_absolute_error(y_test, te_pred)
-    tr_rmse = np.sqrt(mean_squared_error(y_train, tr_pred))
-    te_rmse = np.sqrt(mean_squared_error(y_test, te_pred))
-    tr_r2 = r2_score(y_train, tr_pred)
-    te_r2 = r2_score(y_test, te_pred)
+    tr_acc = accuracy_score(y_train, tr_pred)
+    te_acc = accuracy_score(y_test, te_pred)
+    te_prec = precision_score(y_test, te_pred, average='weighted')
+    te_rec = recall_score(y_test, te_pred, average='weighted')
+    tr_f1 = f1_score(y_train, tr_pred, average='weighted')
+    te_f1 = f1_score(y_test, te_pred, average='weighted')
+    te_f1_macro = f1_score(y_test, te_pred, average='macro')
 
-    print(f"Dedicated Risk Engine Metrics:")
-    print(f"  Train -> RMSE: {tr_rmse:.4f} pts | MAE: {tr_mae:.4f} pts | R²: {tr_r2:.4f}")
-    print(f"  Test  -> RMSE: {te_rmse:.4f} pts | MAE: {te_mae:.4f} pts | R²: {te_r2:.4f}")
-    print(f"  Generalization Gap (R²) -> {tr_r2 - te_r2:.4f}")
-
-    # Clip predictions to 0-100 range check
-    te_pred_clipped = np.clip(te_pred, 0.0, 100.0)
-    print(f"  Clipped Predictions Range: min={te_pred_clipped.min():.1f}, max={te_pred_clipped.max():.1f}")
+    print(f"Genuine Real-Data Risk Classifier Metrics:")
+    print(f"  Train Accuracy: {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}%")
+    print(f"  Test Precision : {te_prec:.4f} | Recall: {te_rec:.4f}")
+    print(f"  Weighted F1    : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
+    print(f"  Generalization Gap (Accuracy Δ) -> {tr_acc - te_acc:.4f}")
+    print(f"  Probability Range P(disruption): min={te_proba.min()*100:.1f}%, max={te_proba.max()*100:.1f}%")
 
     risk_scorer_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
     joblib.dump({
-        'regressor': risk_pipeline,
+        'classifier': risk_pipeline,
         'features': feature_cols
     }, risk_scorer_path)
 
-    # Save backward compatible risk_model.joblib artifact too
+    # Save backward compatible artifact as well
     joblib.dump({
-        'regressor': risk_pipeline,
+        'classifier': risk_pipeline,
         'features': feature_cols
     }, os.path.join(MODEL_DIR, "risk_model.joblib"))
 
-    print(f"✅ Saved dedicated Risk Scorer artifact to {risk_scorer_path}")
+    print(f"✅ Saved genuine real-data Risk Engine artifact to {risk_scorer_path}")
 
 if __name__ == "__main__":
     print("==================================================")
-    print(" VYUHA ML ENGINE: DEDICATED REAL-DATA TRAINING ")
+    print(" VYUHA ML ENGINE: GENUINE REAL-DATA RETRAINING ")
     print("==================================================")
-    train_dataco_models()
-    train_dedicated_risk_scorer()
-    print("\n✅ All Models Serialized & Validated Successfully!")
+    train_dataco_delay_and_cost()
+    train_genuine_real_data_risk_engine()
+    print("\n✅ All 3 ML Models Serialized & Validated Successfully!")

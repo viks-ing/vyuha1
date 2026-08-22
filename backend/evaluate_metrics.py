@@ -4,7 +4,7 @@ Vyuha ML Real-Data Model Performance Evaluation Report
 Evaluates:
 1. DataCo Delay Model (delay_model.joblib)
 2. DataCo Logistics Cost Model (cost_model.joblib)
-3. Dedicated Real-Data ML Risk Scorer (risk_scorer.joblib)
+3. Genuine Real-Data ML Risk Engine (risk_scorer.joblib)
 """
 
 import os
@@ -16,7 +16,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     mean_absolute_error,
     mean_squared_error,
-    r2_score
+    r2_score,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix
 )
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -24,20 +29,19 @@ sys.stdout.reconfigure(encoding='utf-8')
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
 DATACO_PATH = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
-RISK_PATH = os.path.join(DATA_DIR, "supply_chain_disruption_risk.csv")
 
 def evaluate_models():
-    print("=" * 70)
+    print("=" * 75)
     print("       VYUHA REAL-DATA MODEL PERFORMANCE EVALUATION REPORT       ")
-    print("=" * 70)
+    print("=" * 75)
 
-    # 1. DELAY MODEL
-    df_dataco = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
-    feature_cols_dataco = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
-    X_dataco = df_dataco[feature_cols_dataco]
+    df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
+    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
+    X = df[feature_cols]
 
-    y_delay = df_dataco['delay_days']
-    X_tr, X_te, y_tr, y_te = train_test_split(X_dataco, y_delay, test_size=0.2, random_state=42)
+    # 1. DELAY MODEL EVALUATION
+    y_delay = df['delay_days']
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y_delay, test_size=0.2, random_state=42)
 
     delay_art = joblib.load(os.path.join(MODEL_DIR, "delay_model.joblib"))['regressor']
     tr_pred_del = delay_art.predict(X_tr)
@@ -52,14 +56,14 @@ def evaluate_models():
     print(f"  Test  -> RMSE: {te_rmse_del:.4f} days | MAE: {te_mae_del:.4f} days | R²: {te_r2_del:.4f}")
     print(f"  Generalization Gap (R² Δ): {tr_r2_del - te_r2_del:.4f}")
 
-    # 2. COST MODEL
+    # 2. COST MODEL EVALUATION
     mode_rates = {'Same Day': 0.15, 'First Class': 0.10, 'Second Class': 0.06, 'Standard Class': 0.04}
-    df_dataco['shipping_cost'] = df_dataco.apply(
+    df['shipping_cost'] = df.apply(
         lambda r: round(250.0 + (r['order_item_quantity'] * r['product_price'] * mode_rates.get(r['shipping_mode'], 0.05)), 2),
         axis=1
     )
-    y_cost = df_dataco['shipping_cost']
-    X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X_dataco, y_cost, test_size=0.2, random_state=42)
+    y_cost = df['shipping_cost']
+    X_tr_c, X_te_c, y_tr_c, y_te_c = train_test_split(X, y_cost, test_size=0.2, random_state=42)
 
     cost_art = joblib.load(os.path.join(MODEL_DIR, "cost_model.joblib"))['regressor']
     tr_pred_cost = cost_art.predict(X_tr_c)
@@ -74,36 +78,38 @@ def evaluate_models():
     print(f"  Test  -> RMSE: INR {te_rmse_cost:.2f} | MAE: INR {te_mae_cost:.2f} | R²: {te_r2_cost:.4f}")
     print(f"  Generalization Gap (R² Δ): {tr_r2_cost - te_r2_cost:.4f}")
 
-    # 3. DEDICATED ML RISK ENGINE (risk_scorer.joblib)
-    df_risk = pd.read_csv(RISK_PATH).dropna().drop_duplicates()
-    feature_cols_risk = ['distance_km', 'lead_time_days', 'supplier_count', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio', 'transport_mode']
-    X_risk = df_risk[feature_cols_risk]
-    y_risk = df_risk['risk_score']
+    # 3. GENUINE REAL-DATA RISK ENGINE EVALUATION
+    df['disruption_occurrence'] = (df['delay_days'] > 3.0).astype(int)
+    y_risk = df['disruption_occurrence']
 
-    X_tr_r, X_te_r, y_tr_r, y_te_r = train_test_split(X_risk, y_risk, test_size=0.2, random_state=42)
+    X_tr_r, X_te_r, y_tr_r, y_te_r = train_test_split(X, y_risk, test_size=0.2, random_state=42)
 
-    risk_art = joblib.load(os.path.join(MODEL_DIR, "risk_scorer.joblib"))['regressor']
+    risk_art = joblib.load(os.path.join(MODEL_DIR, "risk_scorer.joblib"))['classifier']
     tr_pred_risk = risk_art.predict(X_tr_r)
     te_pred_risk = risk_art.predict(X_te_r)
 
-    tr_mae_r, te_mae_r = mean_absolute_error(y_tr_r, tr_pred_risk), mean_absolute_error(y_te_r, te_pred_risk)
-    tr_rmse_r, te_rmse_r = np.sqrt(mean_squared_error(y_tr_r, tr_pred_risk)), np.sqrt(mean_squared_error(y_te_r, te_pred_risk))
-    tr_r2_r, te_r2_r = r2_score(y_tr_r, tr_pred_risk), r2_score(y_te_r, te_pred_risk)
+    tr_acc, te_acc = accuracy_score(y_tr_r, tr_pred_risk), accuracy_score(y_te_r, te_pred_risk)
+    prec, rec = precision_score(y_te_r, te_pred_risk, average='weighted'), recall_score(y_te_r, te_pred_risk, average='weighted')
+    tr_f1, te_f1_w = f1_score(y_tr_r, tr_pred_risk, average='weighted'), f1_score(y_te_r, te_pred_risk, average='weighted')
+    f1_m = f1_score(y_te_r, te_pred_risk, average='macro')
+    cm = confusion_matrix(y_te_r, te_pred_risk)
 
-    print("\n[3] DEDICATED ML RISK ENGINE MODEL (risk_scorer.joblib)")
-    print(f"  Train -> RMSE: {tr_rmse_r:.4f} pts | MAE: {tr_mae_r:.4f} pts | R²: {tr_r2_r:.4f}")
-    print(f"  Test  -> RMSE: {te_rmse_r:.4f} pts | MAE: {te_mae_r:.4f} pts | R²: {te_r2_r:.4f}")
-    print(f"  Generalization Gap (R² Δ): {tr_r2_r - te_r2_r:.4f}")
+    print("\n[3] GENUINE REAL-DATA ML RISK ENGINE (risk_scorer.joblib)")
+    print(f"  Train Accuracy : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}%")
+    print(f"  Test Precision : {prec:.4f} | Recall: {rec:.4f}")
+    print(f"  Weighted F1    : Train {tr_f1:.4f} | Test {te_f1_w:.4f} | Macro F1: {f1_m:.4f}")
+    print(f"  Confusion Matrix:\n{cm}")
+    print(f"  Generalization Gap (Accuracy Δ): {tr_acc - te_acc:.4f}")
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 75)
     print("  SUMMARY TABLE FOR REAL DATA EVALUATION REPORT")
-    print("=" * 70)
-    print(f"{'Model':<30} | {'RMSE':<12} | {'R²':<8} | {'MAE':<10}")
-    print("-" * 70)
-    print(f"{'Delay Prediction Model':<30} | {te_rmse_del:<12.4f} | {te_r2_del:<8.4f} | {te_mae_del:<10.4f}")
-    print(f"{'Logistics Cost Model':<30} | {te_rmse_cost:<12.2f} | {te_r2_cost:<8.4f} | {te_mae_cost:<10.2f}")
-    print(f"{'Dedicated Risk Engine Model':<30} | {te_rmse_r:<12.4f} | {te_r2_r:<8.4f} | {te_mae_r:<10.4f}")
-    print("=" * 70)
+    print("=" * 75)
+    print(f"{'Model':<30} | {'Metric Type':<12} | {'Test Metric':<12} | {'Weighted F1':<10}")
+    print("-" * 75)
+    print(f"{'Delay Prediction Model':<30} | {'R² / RMSE':<12} | R² = {te_r2_del:.4f} | {'N/A (Reg)':<10}")
+    print(f"{'Logistics Cost Model':<30} | {'R² / RMSE':<12} | R² = {te_r2_cost:.4f} | {'N/A (Reg)':<10}")
+    print(f"{'Genuine ML Risk Engine':<30} | {'Acc / F1':<12} | Acc = {te_acc*100:.2f}%| {te_f1_w:<10.4f}")
+    print("=" * 75)
 
 if __name__ == "__main__":
     evaluate_models()
