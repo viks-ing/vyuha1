@@ -114,11 +114,17 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [userProfile, user?.id]);
 
-  // Restore user-specific localStorage profile on user auth change
+  // Restore user-specific localStorage profile & company details on user auth change
   useEffect(() => {
-    if (!user?.id) return;
-    const userStorageKey = `${STORAGE_KEY}_${user.id}`;
-    const userSaved = localStorage.getItem(userStorageKey);
+    const userIdentifier = user?.id || user?.email || userProfile.email;
+    if (!userIdentifier) return;
+
+    const userSaved =
+      (user?.id ? localStorage.getItem(`${STORAGE_KEY}_${user.id}`) : null) ||
+      (user?.email ? localStorage.getItem(`${STORAGE_KEY}_${user.email}`) : null) ||
+      (userProfile.email ? localStorage.getItem(`${STORAGE_KEY}_${userProfile.email}`) : null) ||
+      localStorage.getItem(STORAGE_KEY);
+
     if (userSaved) {
       try {
         const parsed = JSON.parse(userSaved);
@@ -130,7 +136,12 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     }
 
-    const savedProf = localStorage.getItem(`${USER_PROFILE_KEY}_${user.id}`);
+    const savedProf =
+      (user?.id ? localStorage.getItem(`${USER_PROFILE_KEY}_${user.id}`) : null) ||
+      (user?.email ? localStorage.getItem(`${USER_PROFILE_KEY}_${user.email}`) : null) ||
+      (userProfile.email ? localStorage.getItem(`${USER_PROFILE_KEY}_${userProfile.email}`) : null) ||
+      localStorage.getItem(USER_PROFILE_KEY);
+
     if (savedProf) {
       try {
         const parsedProf = JSON.parse(savedProf);
@@ -139,7 +150,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } catch (e) {}
     }
-  }, [user?.id]);
+  }, [user?.id, user?.email, userProfile.email]);
 
   // Sync user profile name/email from auth and DB
   useEffect(() => {
@@ -205,6 +216,9 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setCompany(restoredCompanyData);
           const userStorageKey = `${STORAGE_KEY}_${user.id}`;
           localStorage.setItem(userStorageKey, JSON.stringify(restoredCompanyData));
+          if (user.email) {
+            localStorage.setItem(`${STORAGE_KEY}_${user.email}`, JSON.stringify(restoredCompanyData));
+          }
           localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredCompanyData));
         }
       } catch (err) {
@@ -220,10 +234,19 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [user?.id]);
 
   useEffect(() => {
-    const userStorageKey = user?.id ? `${STORAGE_KEY}_${user.id}` : STORAGE_KEY;
-    localStorage.setItem(userStorageKey, JSON.stringify(company));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(company));
-  }, [company, user?.id]);
+    if (company.isOnboarded && company.info?.companyName) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(company));
+      if (user?.id) {
+        localStorage.setItem(`${STORAGE_KEY}_${user.id}`, JSON.stringify(company));
+      }
+      if (user?.email) {
+        localStorage.setItem(`${STORAGE_KEY}_${user.email}`, JSON.stringify(company));
+      }
+      if (userProfile.email) {
+        localStorage.setItem(`${STORAGE_KEY}_${userProfile.email}`, JSON.stringify(company));
+      }
+    }
+  }, [company, user?.id, user?.email, userProfile.email]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
