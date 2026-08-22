@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useCompany } from '../../context/CompanyContext';
+import { useAuthContext } from '../../context/AuthContext';
 import {
   Bell,
   Menu,
@@ -10,6 +11,7 @@ import {
   ShieldAlert,
   Search,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
@@ -21,8 +23,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
   const location = useLocation();
   const navigate = useNavigate();
   const { company, alerts, userProfile } = useCompany();
+  const { logout, user } = useAuthContext();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
+
+  const handleLogout = async () => {
+    setShowDropdown(false);
+    await logout();
+    navigate('/login');
+  };
 
   const getPageTitle = (path: string) => {
     switch (path) {
@@ -44,7 +53,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
   };
 
   const page = getPageTitle(location.pathname);
-  const criticalCount = alerts.filter((a) => a.severity === 'Critical' || a.severity === 'High').length;
+  const criticalCount = alerts.filter((a: { severity: string }) => a.severity === 'Critical' || a.severity === 'High').length;
 
   return (
     <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-30 px-4 lg:px-8 flex items-center justify-between shadow-xs">
@@ -117,7 +126,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
               </div>
 
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {alerts.slice(0, 3).map((alt) => (
+                {alerts.slice(0, 3).map((alt: { id: string; title: string; severity: any; description: string }) => (
                   <div key={alt.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-slate-800">{alt.title}</span>
@@ -182,6 +191,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-400" /> Settings & Alerts
                 </button>
+
+                <div className="border-t border-slate-100 pt-1 mt-1">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg text-left font-medium"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-500" /> Logout
+                  </button>
+                </div>
               </div>
             </div>
           )}

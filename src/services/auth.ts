@@ -50,6 +50,7 @@ export interface IAuthService {
   logout(): Promise<void>;
 }
 
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { apiFetch } from './api';
 
 class AuthService implements IAuthService {
@@ -72,6 +73,41 @@ class AuthService implements IAuthService {
       };
     }
 
+    // Use Supabase Auth if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        const user = data.user;
+        const session = data.session;
+
+        return {
+          success: true,
+          data: {
+            user: {
+              id: user?.id || '',
+              email: user?.email || credentials.email,
+              fullName: user?.user_metadata?.full_name || 'Supply Chain Manager',
+              createdAt: user?.created_at || new Date().toISOString(),
+            },
+            token: session?.access_token || '',
+          },
+          message: "Successfully logged in via Supabase Authentication.",
+        };
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "Supabase Authentication failed";
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    // Fallback to FastAPI Python Backend or local state if Supabase env vars not set yet
     try {
       const res = await apiFetch<{ user: AuthUser; token: string }>('/auth/login', {
         method: 'POST',
@@ -89,7 +125,6 @@ class AuthService implements IAuthService {
         return { success: false, error: errorMsg };
       }
       
-      // Fallback response for offline mode
       const mockUser: AuthUser = {
         id: "usr_vyuha_10928",
         email: credentials.email,
@@ -130,6 +165,45 @@ class AuthService implements IAuthService {
       };
     }
 
+    // Use Supabase Auth if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: credentials.email,
+          password: credentials.password,
+          options: {
+            data: {
+              full_name: credentials.fullName,
+            },
+          },
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        const user = data.user;
+
+        return {
+          success: true,
+          data: {
+            user: {
+              id: user?.id || `usr_${Math.random().toString(36).substring(2, 9)}`,
+              email: user?.email || credentials.email,
+              fullName: credentials.fullName,
+              createdAt: user?.created_at || new Date().toISOString(),
+            },
+            requiresOnboarding: true,
+          },
+          message: "Account created successfully via Supabase Auth. Redirecting to onboarding...",
+        };
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "Supabase Signup failed";
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    // Fallback to FastAPI Backend if Supabase env vars not set yet
     try {
       const res = await apiFetch<{ user: AuthUser; token: string }>('/auth/signup', {
         method: 'POST',
@@ -173,6 +247,13 @@ class AuthService implements IAuthService {
       };
     }
 
+    if (isSupabaseConfigured()) {
+      const { error } = await supabase.auth.resetPasswordForEmail(params.email);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
     return {
       success: true,
       data: { emailSent: true },
@@ -197,6 +278,13 @@ class AuthService implements IAuthService {
       };
     }
 
+    if (isSupabaseConfigured()) {
+      const { error } = await supabase.auth.updateUser({ password: params.newPassword });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
     return {
       success: true,
       data: { passwordReset: true },
@@ -205,11 +293,26 @@ class AuthService implements IAuthService {
   }
 
   async getCurrentUser(): Promise<AuthUser | null> {
+    if (isSupabaseConfigured()) {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        return {
+          id: data.user.id,
+          email: data.user.email || '',
+          fullName: data.user.user_metadata?.full_name || '',
+          createdAt: data.user.created_at,
+        };
+      }
+    }
     return null;
   }
 
   async logout(): Promise<void> {
-    await this.simulateDelay(300);
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    } else {
+      await this.simulateDelay(300);
+    }
   }
 }
 

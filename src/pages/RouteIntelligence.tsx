@@ -37,6 +37,8 @@ const TOP_INDIAN_HUBS = [
   'Kochi'
 ];
 
+import { routeService } from '../services/routeService';
+
 export const RouteIntelligence: React.FC = () => {
   const [origin, setOrigin] = useState<string>('Hyderabad');
   const [destination, setDestination] = useState<string>('Chennai');
@@ -69,6 +71,18 @@ export const RouteIntelligence: React.FC = () => {
     try {
       const result = await analyzeRoute(origin.trim(), destination.trim(), transportMode);
       setAnalysisResult(result);
+
+      // Persist route entry to Supabase PostgreSQL database
+      routeService.saveRouteAnalysis({
+        origin: result.origin,
+        destination: result.destination,
+        transport_mode: result.transport_mode,
+        distance_km: result.distance_km,
+        estimated_travel_time_hours: result.estimated_travel_time_hours,
+        route_geometry: result.route_coordinates,
+      }).catch((dbErr) => {
+        console.warn('Supabase DB route save error:', dbErr);
+      });
     } catch (err: any) {
       setError(err?.message || 'Failed to calculate route. Please verify location names.');
     } finally {

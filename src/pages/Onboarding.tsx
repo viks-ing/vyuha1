@@ -8,8 +8,13 @@ import { BusinessConstraintsStep } from '../components/onboarding/BusinessConstr
 import { ShieldCheck } from 'lucide-react';
 import { CompanyInformationData, SupplyChainProfileData, BusinessConstraintsData } from '../types';
 
+import { companyService } from '../services/companyService';
+import { supplyChainService } from '../services/supplyChainService';
+import { useAuthContext } from '../context/AuthContext';
+
 export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const {
     company,
     updateCompanyInfo,
@@ -36,9 +41,41 @@ export const Onboarding: React.FC = () => {
     setOnboardingStep(3);
   };
 
-  const handleStep3Complete = (data: BusinessConstraintsData) => {
+  const handleStep3Complete = async (data: BusinessConstraintsData) => {
     updateBusinessConstraints(data);
     completeOnboarding();
+
+    // Persist to Supabase PostgreSQL database if user is authenticated
+    if (user?.id) {
+      try {
+        const savedCompany = await companyService.upsertCompany({
+          owner_id: user.id,
+          name: company.info.companyName || 'My Company',
+          industry: company.info.industry || null,
+          city: company.info.location || null,
+          state: company.info.location || null,
+        });
+
+        if (savedCompany?.id) {
+          await supplyChainService.saveSupplyChainProfile({
+            company_id: savedCompany.id,
+            supplier_dependency: 'Medium',
+            number_of_suppliers: company.profile.supplierCount || null,
+            inventory_days: 15,
+            safety_stock_days: 5,
+            supplier_lead_time: company.profile.averageLeadTimeDays || null,
+            import_dependency: 30,
+            transportation_mode: company.profile.primaryTransportMode || null,
+            current_logistics_cost: data.maxAdditionalBudget || null,
+            max_additional_budget: data.maxAdditionalBudget || null,
+            max_acceptable_delay: data.maxAcceptableDelayDays || null,
+          });
+        }
+      } catch (dbErr) {
+        console.warn('Supabase DB persistence error on onboarding:', dbErr);
+      }
+    }
+
     navigate('/dashboard');
   };
 
