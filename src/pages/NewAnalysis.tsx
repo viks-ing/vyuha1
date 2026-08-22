@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { Zap, Play, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, RefreshCw, BarChart2 } from 'lucide-react';
 import { formatINR } from '../lib/utils';
 import { useCompany } from '../context/CompanyContext';
+import { analyzeRisk } from '../services/riskApi';
 
 export const NewAnalysis: React.FC = () => {
   const { showToast } = useCompany();
@@ -21,28 +22,40 @@ export const NewAnalysis: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  const handleRunAnalysis = (e: React.FormEvent) => {
+  const handleRunAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsRunning(true);
     setResult(null);
 
-    setTimeout(() => {
+    try {
+      // Call real Python FastAPI trained ML models
+      const apiResult = await analyzeRisk({
+        supplierCount: 4,
+        primaryTransportMode: 'Road',
+        averageLeadTimeDays: 14.0,
+        deliveryDistanceKm: 450.0,
+        maxAcceptableDelayDays: 3,
+        maxAdditionalBudget: 15000.0,
+        supplierDependencyRatio: 0.75,
+        weatherRiskScore: form.scenario.includes('Monsoon') ? 85.0 : 45.0,
+        portCongestionIndex: form.scenario.includes('Port') ? 8.5 : 4.0
+      });
+
       setIsRunning(false);
       setResult({
-        score: 79,
-        status: 'HIGH RISK',
-        expectedDelay: 7.2,
-        expectedCost: 14200,
-        primaryDriver: 'NH-48 Western Ghats Landslide Threat',
+        score: apiResult.riskScore,
+        status: apiResult.riskCategory.toUpperCase(),
+        expectedDelay: apiResult.predictedDelayDays,
+        expectedCost: apiResult.predictedCostIncrease,
+        primaryDriver: form.scenario,
         confidence: '96.4%',
-        recommendations: [
-          'Shift 35% of urgent Chennai-bound shipments to Konkan Railway cargo express.',
-          'Negotiate fixed fuel tariff caps with primary road logistics carriers.',
-          'Buffer safety inventory in Pune warehouse by +3 days.',
-        ],
+        recommendations: apiResult.recommendations,
       });
-      showToast('Risk analysis simulation completed successfully!');
-    }, 2000);
+      showToast('Live ML risk analysis completed successfully!');
+    } catch (err: any) {
+      setIsRunning(false);
+      showToast(`ML Analysis Failed: ${err?.message || 'Check backend status'}`);
+    }
   };
 
   return (

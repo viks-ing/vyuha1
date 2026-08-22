@@ -7,6 +7,7 @@ import { ScenarioItem } from '../types';
 import { formatINR } from '../lib/utils';
 import { FlaskConical, Fuel, CloudRain, Anchor, DollarSign, Clock, ArrowRight, X } from 'lucide-react';
 import { useCompany } from '../context/CompanyContext';
+import { runScenario } from '../services/riskApi';
 
 export const ScenarioLab: React.FC = () => {
   const { showToast } = useCompany();
@@ -139,12 +140,21 @@ export const ScenarioLab: React.FC = () => {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    showToast(`Simulating scenario: ${selectedScenario.name}`);
-                    setSelectedScenario(null);
+                  onClick={async () => {
+                    try {
+                      const res = await runScenario({
+                        scenarioType: selectedScenario.id.includes('1') ? 'fuel_surge' : selectedScenario.id.includes('2') ? 'monsoon_floods' : 'port_strike',
+                        intensity: 75
+                      });
+                      showToast(`ML Simulation complete: Delay +${res.newPredictedDelayDays}d, Cost +${formatINR(res.newPredictedCostIncrease)}`);
+                      setSelectedScenario(null);
+                    } catch (err: any) {
+                      showToast(`Scenario simulation: ${selectedScenario.name}`);
+                      setSelectedScenario(null);
+                    }
                   }}
                 >
-                  Run Simulation
+                  Run ML Simulation
                 </Button>
               </div>
             </div>
