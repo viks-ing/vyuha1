@@ -1,6 +1,7 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useCompany } from '../../context/CompanyContext';
+import { useAuthContext } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   Zap,
@@ -21,7 +22,9 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
-  const { company, resetOnboarding } = useCompany();
+  const navigate = useNavigate();
+  const { company } = useCompany();
+  const { logout } = useAuthContext();
 
   const mainNavItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -156,8 +159,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
               </div>
             </div>
             <button
-              onClick={resetOnboarding}
-              title="Reset Onboarding State"
+              onClick={async () => {
+                await logout();
+                navigate('/login');
+              }}
+              title="Logout"
               className="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-slate-100 transition-colors"
             >
               <LogOut className="w-4 h-4" />

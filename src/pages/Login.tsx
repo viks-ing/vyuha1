@@ -12,7 +12,7 @@ import { Mail, LogIn } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading, error, successMessage, login } = useAuth();
-  const { resetOnboarding } = useCompany();
+  const { company, updateUserProfile } = useCompany();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,10 +41,21 @@ export const LoginPage: React.FC = () => {
 
     const result = await login({ email, password });
     if (result) {
-      resetOnboarding();
+      const userFullName = result.user?.fullName || result.session?.user?.user_metadata?.full_name;
+      const userEmail = result.user?.email || result.session?.user?.email || email;
+
+      updateUserProfile({
+        name: userFullName || (userEmail ? userEmail.split('@')[0] : 'User'),
+        email: userEmail,
+      });
+
       setTimeout(() => {
-        navigate('/onboarding');
-      }, 1200);
+        if (company.isOnboarded || company.info?.companyName) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
+      }, 600);
     }
   };
 

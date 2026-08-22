@@ -21,6 +21,10 @@ import {
 } from '../data/mockData';
 import { analyzeRisk } from '../services/riskApi';
 import { fetchLiveRealTimeAlerts, LiveTelemetrySummary } from '../services/liveFeedsService';
+import { companyService } from '../services/companyService';
+import { supplyChainService } from '../services/supplyChainService';
+import { profileService } from '../services/profileService';
+import { useAuthContext } from './AuthContext';
 
 interface CompanyContextType {
   company: CompanyData;
@@ -57,19 +61,15 @@ const STORAGE_KEY = 'vyuha_company_state_v1';
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuthContext();
   const [company, setCompany] = useState<CompanyData>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (!parsed.isOnboarded || !parsed.info?.companyName) {
-          return {
-            ...parsed,
-            isOnboarded: false,
-            onboardingStep: 1,
-          };
+        if (parsed.isOnboarded && parsed.info?.companyName) {
+          return parsed;
         }
-        return parsed;
       } catch (e) {
         console.error('Failed to parse saved company state:', e);
       }
@@ -84,15 +84,146 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [liveTelemetry, setLiveTelemetry] = useState<LiveTelemetrySummary | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
   const [lastAlertsUpdated, setLastAlertsUpdated] = useState<string>('Just now');
-  const [userProfile, setUserProfile] = useState<UserProfile>(mockUserProfile);
+  const USER_PROFILE_KEY = 'vyuha_user_profile_state_v1';
+
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem(USER_PROFILE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.name && parsed.email) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse saved user profile:', e);
+      }
+    }
+    return mockUserProfile;
+  });
+
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
   const [preferences, setPreferences] = useState<DashboardPreferences>(defaultDashboardPreferences);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoadingMl, setIsLoadingMl] = useState<boolean>(false);
 
+  // Persist userProfile changes to localStorage
   useEffect(() => {
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+    if (user?.id) {
+      localStorage.setItem(`${USER_PROFILE_KEY}_${user.id}`, JSON.stringify(userProfile));
+    }
+  }, [userProfile, user?.id]);
+
+  // Restore user-specific localStorage profile on user auth change
+  useEffect(() => {
+    if (!user?.id) return;
+    const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+    const userSaved = localStorage.getItem(userStorageKey);
+    if (userSaved) {
+      try {
+        const parsed = JSON.parse(userSaved);
+        if (parsed.isOnboarded && parsed.info?.companyName) {
+          setCompany(parsed);
+        }
+      } catch (err) {
+        console.warn('User localStorage restore error:', err);
+      }
+    }
+
+    const savedProf = localStorage.getItem(`${USER_PROFILE_KEY}_${user.id}`);
+    if (savedProf) {
+      try {
+        const parsedProf = JSON.parse(savedProf);
+        if (parsedProf.name) {
+          setUserProfile(parsedProf);
+        }
+      } catch (e) {}
+    }
+  }, [user?.id]);
+
+  // Sync user profile name/email from auth and DB
+  useEffect(() => {
+    if (!user) return;
+    const authName = user.user_metadata?.full_name;
+    const authEmail = user.email;
+
+    if (authName || authEmail) {
+      setUserProfile((prev) => ({
+        ...prev,
+        name: authName || (authEmail ? authEmail.split('@')[0] : prev.name),
+        email: authEmail || prev.email,
+      }));
+    }
+
+    if (user.id) {
+      profileService.getProfile(user.id).then((prof) => {
+        if (prof?.full_name) {
+          setUserProfile((prev) => ({
+            ...prev,
+            name: prof.full_name || prev.name,
+            role: prof.role || prev.role,
+          }));
+        }
+      });
+    }
+  }, [user]);
+
+  // Load existing company profile & business constraints from Supabase PostgreSQL DB
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+
+    const loadCompanyFromDb = async () => {
+      try {
+        const dbCompany = await companyService.getCompanyByOwner(user.id);
+        if (dbCompany && isMounted) {
+          const scProfile = await supplyChainService.getSupplyChainProfile(dbCompany.id);
+          const restoredCompanyData: CompanyData = {
+            info: {
+              companyName: dbCompany.name || '',
+              industry: dbCompany.industry || 'Manufacturing',
+              businessType: 'B2B',
+              companySize: 'Medium',
+              location: dbCompany.city || dbCompany.state || '',
+            },
+            profile: {
+              supplierCount: scProfile?.number_of_suppliers || 3,
+              primaryTransportMode: (scProfile?.transportation_mode as any) || 'Road',
+              averageLeadTimeDays: scProfile?.supplier_lead_time || 10,
+              deliveryDistanceKm: 350,
+            },
+            constraints: {
+              maxAcceptableDelayDays: scProfile?.max_acceptable_delay || 3,
+              maxAdditionalBudget: scProfile?.max_additional_budget || 10000,
+              riskTolerance: (scProfile?.supplier_dependency as any) || 'Medium',
+            },
+            isOnboarded: true,
+            onboardingStep: 3,
+            updatedAt: dbCompany.created_at || new Date().toISOString().split('T')[0],
+          };
+
+          setCompany(restoredCompanyData);
+          const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+          localStorage.setItem(userStorageKey, JSON.stringify(restoredCompanyData));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredCompanyData));
+        }
+      } catch (err) {
+        console.warn('DB company profile fetch error:', err);
+      }
+    };
+
+    loadCompanyFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const userStorageKey = user?.id ? `${STORAGE_KEY}_${user.id}` : STORAGE_KEY;
+    localStorage.setItem(userStorageKey, JSON.stringify(company));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(company));
-  }, [company]);
+  }, [company, user?.id]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -261,7 +392,15 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setIsLoadingMl(false);
     }
-  }, [company.profile, company.constraints, refreshAlerts]);
+  }, [
+    company.profile?.supplierCount,
+    company.profile?.primaryTransportMode,
+    company.profile?.averageLeadTimeDays,
+    company.profile?.deliveryDistanceKm,
+    company.constraints?.maxAcceptableDelayDays,
+    company.constraints?.maxAdditionalBudget,
+    refreshAlerts,
+  ]);
 
   // Auto-sync real-time alerts on mount and every 60 seconds
   useEffect(() => {
@@ -368,7 +507,20 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const updateUserProfile = (p: Partial<UserProfile>) => {
-    setUserProfile((prev) => ({ ...prev, ...p }));
+    setUserProfile((prev) => {
+      const updated = { ...prev, ...p };
+      localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(updated));
+      if (user?.id) {
+        localStorage.setItem(`${USER_PROFILE_KEY}_${user.id}`, JSON.stringify(updated));
+        profileService.upsertProfile({
+          id: user.id,
+          full_name: updated.name,
+          company_name: company.info.companyName || 'My Enterprise',
+          role: updated.role,
+        }).catch((err) => console.warn('Profile DB save warning:', err));
+      }
+      return updated;
+    });
     showToast('Profile updated');
   };
 

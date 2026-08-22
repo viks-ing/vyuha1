@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
+import { profileService } from './profileService';
 
 export interface LoginParams {
   email: string;
@@ -33,6 +34,18 @@ export const authService = {
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (data?.user?.id) {
+      try {
+        await profileService.upsertProfile({
+          id: data.user.id,
+          full_name: params.fullName,
+          role: 'Supply Chain Manager',
+        });
+      } catch (profileErr) {
+        console.warn('DB user profile creation warning:', profileErr);
+      }
     }
 
     return data;

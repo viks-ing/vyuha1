@@ -10,6 +10,7 @@ import { CompanyInformationData, SupplyChainProfileData, BusinessConstraintsData
 
 import { companyService } from '../services/companyService';
 import { supplyChainService } from '../services/supplyChainService';
+import { profileService } from '../services/profileService';
 import { useAuthContext } from '../context/AuthContext';
 
 export const Onboarding: React.FC = () => {
@@ -24,12 +25,12 @@ export const Onboarding: React.FC = () => {
     completeOnboarding,
   } = useCompany();
 
-  // Automatically start on Step 1 if the user hasn't filled out company information
+  // Redirect to dashboard if company profile is already onboarded
   useEffect(() => {
-    if (!company.info.companyName || !company.isOnboarded) {
-      setOnboardingStep(1);
+    if (company.isOnboarded && company.info?.companyName) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [company.info.companyName, company.isOnboarded, setOnboardingStep]);
+  }, [company.info?.companyName, company.isOnboarded, navigate]);
 
   const handleStep1Next = (data: CompanyInformationData) => {
     updateCompanyInfo(data);
@@ -45,30 +46,42 @@ export const Onboarding: React.FC = () => {
     updateBusinessConstraints(data);
     completeOnboarding();
 
-    // Persist to Supabase PostgreSQL database if user is authenticated
+    // Persist user profile, company details, and business constraints to Supabase PostgreSQL DB
     if (user?.id) {
       try {
-        const savedCompany = await companyService.upsertCompany({
-          owner_id: user.id,
-          name: company.info.companyName || 'My Company',
-          industry: company.info.industry || null,
-          city: company.info.location || null,
-          state: company.info.location || null,
+        const compName = company.info.companyName || 'My Enterprise';
+
+        // 1. Update Profile entity with Company Name
+        await profileService.upsertProfile({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || 'Supply Chain Manager',
+          company_name: compName,
+          role: 'Supply Chain Manager',
         });
 
+        // 2. Insert/Update Company entity
+        const savedCompany = await companyService.upsertCompany({
+          owner_id: user.id,
+          name: compName,
+          industry: company.info.industry || 'Manufacturing',
+          city: company.info.location || 'India',
+          state: company.info.location || 'India',
+        });
+
+        // 3. Insert/Update Supply Chain Profile & Business Constraints
         if (savedCompany?.id) {
           await supplyChainService.saveSupplyChainProfile({
             company_id: savedCompany.id,
-            supplier_dependency: 'Medium',
-            number_of_suppliers: company.profile.supplierCount || null,
+            supplier_dependency: data.riskTolerance || 'Medium',
+            number_of_suppliers: company.profile.supplierCount || 3,
             inventory_days: 15,
             safety_stock_days: 5,
-            supplier_lead_time: company.profile.averageLeadTimeDays || null,
+            supplier_lead_time: company.profile.averageLeadTimeDays || 10,
             import_dependency: 30,
-            transportation_mode: company.profile.primaryTransportMode || null,
-            current_logistics_cost: data.maxAdditionalBudget || null,
-            max_additional_budget: data.maxAdditionalBudget || null,
-            max_acceptable_delay: data.maxAcceptableDelayDays || null,
+            transportation_mode: company.profile.primaryTransportMode || 'Road',
+            current_logistics_cost: data.maxAdditionalBudget || 10000,
+            max_additional_budget: data.maxAdditionalBudget || 10000,
+            max_acceptable_delay: data.maxAcceptableDelayDays || 3,
           });
         }
       } catch (dbErr) {

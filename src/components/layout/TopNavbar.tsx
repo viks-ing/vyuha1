@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useCompany } from '../../context/CompanyContext';
 import { useAuthContext } from '../../context/AuthContext';
@@ -23,10 +23,62 @@ interface TopNavbarProps {
 export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { company, alerts, userProfile } = useCompany();
+  const { company, alerts, userProfile, showToast } = useCompany();
   const { logout, user } = useAuthContext();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+
+  const alertsDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const searchPages = [
+    { title: 'Executive Risk Dashboard', path: '/dashboard', category: 'Overview', desc: 'Main risk metrics, live telemetry & alerts' },
+    { title: 'New Risk Analysis Engine', path: '/new-analysis', category: 'Analytics', desc: 'Calculate AI-based delay & cost probabilities' },
+    { title: 'Scenario Simulation Lab', path: '/scenario-lab', category: 'Simulations', desc: 'Simulate weather, fuel price & labor disruptions' },
+    { title: 'Analysis Audit Trail', path: '/history', category: 'Logs', desc: 'Review historical risk runs & audit logs' },
+    { title: 'Company & Supply Profile', path: '/profile', category: 'Organization', desc: 'Update enterprise details & transport modes' },
+    { title: 'System Settings & Alerts', path: '/settings', category: 'Configuration', desc: 'Configure risk thresholds & notifications' },
+  ];
+
+  const filteredPages = searchQuery.trim()
+    ? searchPages.filter(p =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const filteredAlerts = searchQuery.trim()
+    ? alerts.filter((a: { title: string; description: string }) =>
+        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  // Close dropdown menus when user clicks or touches anywhere outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (alertsDropdownRef.current && !alertsDropdownRef.current.contains(event.target as Node)) {
+        setShowAlertsDropdown(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = async () => {
     setShowDropdown(false);
@@ -90,14 +142,99 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
 
       {/* Right Navbar Controls */}
       <div className="flex items-center gap-3">
-        {/* Search Bar - Hidden on smallest screens */}
-        <div className="relative hidden md:block w-48 lg:w-64">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        {/* Functional Search Bar */}
+        <div ref={searchRef} className="relative hidden md:block w-52 lg:w-72">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search risks, routes..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+            placeholder="Search risks, routes, features..."
+            value={searchQuery}
+            onFocus={() => setShowSearchDropdown(true)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchDropdown(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowSearchDropdown(false);
+              } else if (e.key === 'Enter' && filteredPages.length > 0) {
+                navigate(filteredPages[0].path);
+                setShowSearchDropdown(false);
+                setSearchQuery('');
+              }
+            }}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 transition-all"
           />
+
+          {/* Live Search Results Popover */}
+          {showSearchDropdown && searchQuery.trim().length > 0 && (
+            <div className="absolute left-0 right-0 mt-2 w-80 lg:w-96 rounded-xl bg-white border border-slate-200 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 max-h-96 overflow-y-auto">
+              {filteredPages.length === 0 && filteredAlerts.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-500">
+                  No matching results found for &quot;<span className="font-semibold text-slate-800">{searchQuery}</span>&quot;
+                </div>
+              ) : (
+                <>
+                  {filteredPages.length > 0 && (
+                    <div className="mb-2">
+                      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Pages & Tools
+                      </p>
+                      {filteredPages.map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => {
+                            navigate(item.path);
+                            setShowSearchDropdown(false);
+                            setSearchQuery('');
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-sky-50 transition-colors flex items-center justify-between group cursor-pointer"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 group-hover:text-sky-600">
+                              {item.title}
+                            </p>
+                            <p className="text-[11px] text-slate-500 line-clamp-1">{item.desc}</p>
+                          </div>
+                          <span className="text-[10px] bg-slate-100 group-hover:bg-sky-100 text-slate-600 group-hover:text-sky-700 px-2 py-0.5 rounded font-semibold">
+                            {item.category}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {filteredAlerts.length > 0 && (
+                    <div>
+                      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-100 pt-2">
+                        Active Risk Alerts
+                      </p>
+                      {filteredAlerts.map((alt: { id: string; title: string; description: string; severity: string }) => (
+                        <button
+                          key={alt.id}
+                          onClick={() => {
+                            navigate('/dashboard');
+                            setShowSearchDropdown(false);
+                            setSearchQuery('');
+                            showToast(`Navigated to alert: ${alt.title}`);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors flex items-center justify-between group cursor-pointer"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 group-hover:text-rose-600">
+                              {alt.title}
+                            </p>
+                            <p className="text-[11px] text-slate-500 line-clamp-1">{alt.description}</p>
+                          </div>
+                          <Badge variant={alt.severity as any}>{alt.severity}</Badge>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Live Status Pill */}
@@ -110,7 +247,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
         </div>
 
         {/* Notifications Alert Bell */}
-        <div className="relative">
+        <div ref={alertsDropdownRef} className="relative">
           <button
             onClick={() => setShowAlertsDropdown(!showAlertsDropdown)}
             className="relative p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 border border-slate-200 transition-colors"
@@ -157,7 +294,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
         </div>
 
         {/* User / Company Avatar Dropdown */}
-        <div className="relative">
+        <div ref={userDropdownRef} className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all text-left"

@@ -12,7 +12,7 @@ import { User, Mail, UserPlus } from 'lucide-react';
 export const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading, error, successMessage, signup } = useAuth();
-  const { resetOnboarding } = useCompany();
+  const { resetOnboarding, updateUserProfile } = useCompany();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -67,6 +67,10 @@ export const SignupPage: React.FC = () => {
     });
 
     if (result) {
+      updateUserProfile({
+        name: fullName,
+        email: email,
+      });
       resetOnboarding();
       setTimeout(() => {
         navigate('/onboarding');

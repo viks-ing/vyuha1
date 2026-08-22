@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
@@ -51,6 +51,27 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+
+  const stateContainerRef = useRef<HTMLDivElement>(null);
+  const cityContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (stateContainerRef.current && !stateContainerRef.current.contains(event.target as Node)) {
+        setShowStateDropdown(false);
+      }
+      if (cityContainerRef.current && !cityContainerRef.current.contains(event.target as Node)) {
+        setShowCityDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const [city, setCity] = useState(() => {
     if (initialData.location) {
@@ -113,20 +134,10 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
 
     if (!trimmedState) {
       newErrors.state = 'State is required';
-    } else if (!matchedState) {
-      newErrors.state = 'Please select a valid Indian state from the list';
     }
 
     if (!trimmedCity) {
       newErrors.city = 'City is required';
-    } else if (matchedState) {
-      const cities = indianStatesAndCities[matchedState];
-      const matchedCity = cities.find(c => c.toLowerCase() === trimmedCity.toLowerCase());
-      if (!matchedCity) {
-        newErrors.city = `Please select a valid city in ${matchedState}`;
-      }
-    } else {
-      newErrors.city = 'Please select a valid state first';
     }
 
     setErrors(newErrors);
@@ -233,7 +244,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           
           {/* Custom State Dropdown */}
-          <div className="space-y-1.5 relative">
+          <div ref={stateContainerRef} className="space-y-1.5 relative">
             <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
               State
             </label>
@@ -244,7 +255,6 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
                 placeholder="e.g. Maharashtra"
                 value={stateName}
                 onFocus={() => setShowStateDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStateDropdown(false), 200)}
                 onChange={(e) => {
                   setStateName(e.target.value);
                   setCity(''); // Reset city selection
@@ -268,7 +278,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
                   <button
                     key={s}
                     type="button"
-                    onMouseDown={() => {
+                    onClick={() => {
                       setStateName(s);
                       setCity('');
                       setShowStateDropdown(false);
@@ -287,7 +297,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
           </div>
 
           {/* Custom City Dropdown */}
-          <div className="space-y-1.5 relative">
+          <div ref={cityContainerRef} className="space-y-1.5 relative">
             <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
               City
             </label>
@@ -295,16 +305,15 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
               <MapPin className="absolute left-3 text-slate-400 w-4 h-4 pointer-events-none" />
               <input
                 type="text"
-                placeholder={cityPlaceholder}
+                placeholder={stateName.trim() ? 'e.g. Mumbai or type city' : 'Type state first'}
                 value={city}
-                onFocus={() => matchedState && setShowCityDropdown(true)}
-                onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                onFocus={() => setShowCityDropdown(true)}
                 onChange={(e) => {
                   setCity(e.target.value);
                   setShowCityDropdown(true);
                 }}
                 onKeyDown={handleCityKeyDown}
-                disabled={!matchedState}
+                disabled={!stateName.trim()}
                 className={`flex h-10 w-full rounded-lg border bg-white pl-10 pr-8 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${
                   errors.city ? 'border-rose-500' : 'border-slate-300'
                 } disabled:opacity-60 disabled:bg-slate-50`}
@@ -322,7 +331,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
                   <button
                     key={c}
                     type="button"
-                    onMouseDown={() => {
+                    onClick={() => {
                       setCity(c);
                       setShowCityDropdown(false);
                     }}
