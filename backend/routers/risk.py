@@ -208,29 +208,21 @@ def analyze_risk(req: AnalysisRequest):
 
     def build_inference_df(artifact):
         expected_feats = artifact.get('features', []) if artifact else []
-        if 'scheduled_shipping_days' in expected_feats:
-            mode_map = {'Road': 'Standard Class', 'Rail': 'Second Class', 'Sea': 'Standard Class', 'Air': 'Same Day'}
-            return pd.DataFrame([{
-                'scheduled_shipping_days': max(1.0, float(lead_time_days)),
-                'order_item_quantity': max(1, int(supplier_count)),
-                'product_price': max(10.0, float(weight_kg * 0.1)),
-                'shipping_mode': mode_map.get(transport_mode, 'Standard Class'),
-                'product_category': 'Industrial Parts',
-                'order_region': 'South Asia'
-            }])
-        else:
-            return pd.DataFrame([{
-                'distance_km': float(distance_km),
-                'lead_time_days': float(lead_time_days),
-                'supplier_count': int(supplier_count),
-                'transport_mode': transport_mode,
-                'weather_risk_score': float(weather_score),
-                'port_congestion_index': float(port_congestion),
-                'geopolitical_risk_score': float(geo_score),
-                'shipment_weight_kg': float(weight_kg),
-                'supplier_dependency_ratio': float(supplier_dep),
-                'traffic_density_index': 6.5
-            }])
+        mode_map = {'Road': 'Standard Class', 'Rail': 'Second Class', 'Sea': 'Standard Class', 'Air': 'Same Day'}
+        row = {
+            'scheduled_shipping_days': max(1.0, float(lead_time_days)),
+            'order_item_quantity': max(1, int(supplier_count)),
+            'product_price': max(10.0, float(weight_kg * 0.1)),
+            'shipping_mode': mode_map.get(transport_mode, 'Standard Class'),
+            'product_category': 'Industrial Parts',
+            'order_region': 'South Asia'
+        }
+        if 'weather_risk_score' in expected_feats:
+            row['weather_risk_score'] = float(weather_score)
+            row['geopolitical_risk_score'] = float(geo_score)
+            row['port_congestion_index'] = float(port_congestion)
+            row['supplier_dependency_ratio'] = float(supplier_dep)
+        return pd.DataFrame([row])
 
     # 1. Delay Model Inference
     if delay_artifact and "regressor" in delay_artifact:

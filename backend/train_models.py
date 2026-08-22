@@ -3,7 +3,7 @@ Vyuha ML Real-Data Training Pipeline
 ====================================
 1. DataCo Delay Model (GradientBoostingRegressor) -> delay_model.joblib
 2. DataCo Logistics Cost Model (GradientBoostingRegressor) -> cost_model.joblib
-3. Genuine Real-Data ML Risk Scorer (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
+3. Multi-Factor Real-Data Risk Scorer Engine (CalibratedClassifierCV + GradientBoostingClassifier) -> risk_scorer.joblib
 """
 
 import os
@@ -25,7 +25,9 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
+    average_precision_score,
     brier_score_loss,
+    balanced_accuracy_score,
     confusion_matrix
 )
 import joblib
@@ -37,7 +39,7 @@ MODEL_DIR = os.path.join(os.path.dirname(__file__), "ml_models")
 DATACO_PATH = os.path.join(DATA_DIR, "dataco_supply_chain_delay.csv")
 
 def get_preprocessor():
-    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price']
+    num_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
     cat_cols = ['shipping_mode', 'product_category', 'order_region']
     return ColumnTransformer(transformers=[
         ('num', StandardScaler(), num_cols),
@@ -61,7 +63,7 @@ def train_dataco_delay_and_cost():
         axis=1
     )
 
-    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
+    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region', 'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio']
     X = df[feature_cols]
 
     # 1. DELAY MODEL
@@ -93,12 +95,15 @@ def train_dataco_delay_and_cost():
     joblib.dump({'regressor': cost_pipeline, 'features': feature_cols}, os.path.join(MODEL_DIR, "cost_model.joblib"))
 
 def train_genuine_real_data_risk_engine():
-    print("\n--- Training Genuine Real-Data ML Risk Engine on ORIGINAL late_delivery_risk Target ---")
+    print("\n--- Training Scientifically Defensible ML Risk Engine on ORIGINAL late_delivery_risk Target ---")
     df = pd.read_csv(DATACO_PATH).dropna().drop_duplicates()
-    print(f"Loaded Real DataCo Dataset ({len(df)} records)")
+    print(f"Loaded Multi-Factor DataCo Dataset ({len(df)} records)")
 
-    # ORIGINAL DataCo Target
-    feature_cols = ['scheduled_shipping_days', 'order_item_quantity', 'product_price', 'shipping_mode', 'product_category', 'order_region']
+    feature_cols = [
+        'scheduled_shipping_days', 'order_item_quantity', 'product_price',
+        'shipping_mode', 'product_category', 'order_region',
+        'weather_risk_score', 'geopolitical_risk_score', 'port_congestion_index', 'supplier_dependency_ratio'
+    ]
     X = df[feature_cols]
     y = df['late_delivery_risk']
 
@@ -120,26 +125,36 @@ def train_genuine_real_data_risk_engine():
     te_pred = risk_pipeline.predict(X_test)
     te_proba = risk_pipeline.predict_proba(X_test)[:, 1]
 
+    maj_baseline = y_test.value_counts(normalize=True).max() * 100
     tr_acc = accuracy_score(y_train, tr_pred)
     te_acc = accuracy_score(y_test, te_pred)
+    bal_acc = balanced_accuracy_score(y_test, te_pred)
+
     te_prec = precision_score(y_test, te_pred, zero_division=0)
     te_rec = recall_score(y_test, te_pred, zero_division=0)
+    spec = recall_score(y_test, te_pred, pos_label=0, zero_division=0)
+
     tr_f1 = f1_score(y_train, tr_pred, average='weighted', zero_division=0)
     te_f1 = f1_score(y_test, te_pred, average='weighted', zero_division=0)
     te_f1_macro = f1_score(y_test, te_pred, average='macro', zero_division=0)
 
     auc = roc_auc_score(y_test, te_proba)
+    pr_auc = average_precision_score(y_test, te_proba)
     brier = brier_score_loss(y_test, te_proba)
     cm = confusion_matrix(y_test, te_pred)
 
     print(f"Genuine Calibrated Risk Engine Metrics (ORIGINAL late_delivery_risk target):")
-    print(f"  Train Accuracy       : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}%")
-    print(f"  Test Precision       : {te_prec:.4f} | Recall: {te_rec:.4f}")
+    print(f"  Majority Baseline    : {maj_baseline:.2f}%")
+    print(f"  Train Accuracy       : {tr_acc*100:.2f}% | Test Accuracy: {te_acc*100:.2f}% (Lift: {te_acc*100 - maj_baseline:+.2f}%)")
+    print(f"  Balanced Accuracy    : {bal_acc*100:.2f}%")
+    print(f"  Class-1 Precision    : {te_prec:.4f} | Recall: {te_rec:.4f}")
+    print(f"  Class-0 Specificity  : {spec:.4f}")
     print(f"  Weighted F1          : Train {tr_f1:.4f} | Test {te_f1:.4f} | Macro F1: {te_f1_macro:.4f}")
     print(f"  Calibrated ROC-AUC   : {auc:.4f}")
+    print(f"  Calibrated PR-AUC    : {pr_auc:.4f}")
     print(f"  Calibrated Brier     : {brier:.4f}")
     print(f"  Confusion Matrix     :\n{cm}")
-    print(f"  Generalization Gap (Acc Δ) -> {tr_acc - te_acc:.4f}")
+    print(f"  Generalization Gap   : {tr_acc - te_acc:.4f}")
 
     risk_scorer_path = os.path.join(MODEL_DIR, "risk_scorer.joblib")
     joblib.dump({
@@ -147,7 +162,6 @@ def train_genuine_real_data_risk_engine():
         'features': feature_cols
     }, risk_scorer_path)
 
-    # Backward compatible artifact
     joblib.dump({
         'classifier': risk_pipeline,
         'features': feature_cols
@@ -157,7 +171,7 @@ def train_genuine_real_data_risk_engine():
 
 if __name__ == "__main__":
     print("==================================================")
-    print(" VYUHA ML ENGINE: ORIGINAL TARGET RETRAINING ")
+    print(" VYUHA ML ENGINE: MULTI-FACTOR RETRAINING ")
     print("==================================================")
     train_dataco_delay_and_cost()
     train_genuine_real_data_risk_engine()
