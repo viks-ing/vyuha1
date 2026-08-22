@@ -33,6 +33,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </span>
         </Link>
 
+        <button
+          onClick={() => navigate(-1)}
+          className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Back</span>
+        </button>
       </header>
 
       {/* Main Split Content Container */}
@@ -103,16 +110,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         </div>
       </main>
 
-      {/* Bottom left Go Back button container */}
-      <div className="relative z-10 max-w-5xl w-full mx-auto px-6 md:px-12 pb-6 flex justify-start">
-        <button
-          onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span>Go Back</span>
-        </button>
-      </div>
+
 
       {/* Auth Footer */}
       <footer className="relative z-10 p-6 text-center text-xs font-mono text-slate-500 border-t border-slate-200 bg-white">
