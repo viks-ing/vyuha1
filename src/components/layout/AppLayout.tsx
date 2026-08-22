@@ -27,15 +27,6 @@ export const AppLayout: React.FC = () => {
         />
 
         <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6 overflow-x-hidden">
-          <div className="flex justify-start">
-            <button
-              onClick={() => navigate(-1)}
-              className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-              <span>Back</span>
-            </button>
-          </div>
           <Outlet />
         </main>
 

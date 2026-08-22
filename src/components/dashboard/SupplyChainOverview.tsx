@@ -61,22 +61,28 @@ export const SupplyChainOverview: React.FC<Props> = ({ profile, importDependency
       </CardHeader>
 
       <CardContent className="pt-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="flex flex-col gap-3">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
               <div
                 key={idx}
-                className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 hover:border-slate-300 transition-colors"
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/50 border border-slate-200 hover:border-slate-300 transition-all duration-200"
               >
-                <div className="flex items-center justify-between text-slate-500 mb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">
-                    {stat.label}
-                  </span>
-                  <Icon className={`w-4 h-4 ${stat.color}`} />
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className={`p-2 rounded-xl bg-white border border-slate-150 ${stat.color} shadow-xs shrink-0`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      {stat.label}
+                    </span>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{stat.subtext}</p>
+                  </div>
                 </div>
-                <p className="text-xl font-black text-slate-900">{stat.value}</p>
-                <p className="text-[10px] text-slate-500 truncate">{stat.subtext}</p>
+                <div className="text-right pl-3">
+                  <p className="text-base font-extrabold text-slate-900 leading-none">{stat.value}</p>
+                </div>
               </div>
             );
           })}

@@ -33,13 +33,6 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </span>
         </Link>
 
-        <button
-          onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span>Back</span>
-        </button>
       </header>
 
       {/* Main Split Content Container */}
@@ -98,6 +91,17 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Right / Auth Form Panel */}
           <div className="col-span-1 lg:col-span-6 flex justify-center">
             <div className="w-full max-w-md bg-white backdrop-blur-xl border border-slate-200 p-6 sm:p-8 rounded-2xl shadow-xl relative">
+              {/* Back button inside white card */}
+              <div className="flex justify-start mb-4">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                  <span>Back</span>
+                </button>
+              </div>
+
               <div className="mb-6 space-y-1">
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
                 <p className="text-xs text-slate-500">{subtitle}</p>
