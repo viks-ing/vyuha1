@@ -180,6 +180,35 @@ export const ScenarioLab: React.FC = () => {
     setIsSimulating(true);
     try {
       const suppliers = company.profile.supplierCount || 3;
+      
+      // Compute specific feature vector stresses for each preset scenario type
+      let scenarioChanges: Record<string, number> = {};
+      if (scenario.scenarioType === 'fuel_surge') {
+        scenarioChanges = {
+          geopolitical_risk_score: Math.min(95, 15 + level * 0.75),
+          weather_risk_score: Math.min(65, 20 + level * 0.35),
+          port_congestion_index: Math.min(7.5, 2.0 + level * 0.045),
+        };
+      } else if (scenario.scenarioType === 'monsoon_floods') {
+        scenarioChanges = {
+          weather_risk_score: Math.min(98, 20 + level * 0.78),
+          port_congestion_index: Math.min(8.5, 2.0 + level * 0.055),
+          geopolitical_risk_score: Math.min(70, 15 + level * 0.4),
+        };
+      } else if (scenario.scenarioType === 'port_strike') {
+        scenarioChanges = {
+          port_congestion_index: Math.min(9.9, 2.0 + level * 0.078),
+          geopolitical_risk_score: Math.min(88, 15 + level * 0.65),
+          supplier_dependency_ratio: Math.min(0.92, 0.3 + level * 0.005),
+        };
+      } else if (scenario.scenarioType === 'supplier_outage') {
+        scenarioChanges = {
+          supplier_dependency_ratio: Math.min(0.95, 0.3 + level * 0.0065),
+          geopolitical_risk_score: Math.min(85, 15 + level * 0.55),
+          port_congestion_index: Math.min(7.5, 2.0 + level * 0.045),
+        };
+      }
+
       const res = await runScenario({
         scenarioType: scenario.scenarioType,
         intensity: level,
@@ -193,6 +222,7 @@ export const ScenarioLab: React.FC = () => {
           portCongestionIndex: 2.0,
           geopoliticalRiskScore: 15,
         },
+        changes: scenarioChanges,
       });
       setSimulationResult({
         ...res,

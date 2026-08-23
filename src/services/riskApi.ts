@@ -165,28 +165,79 @@ export async function runScenario(input: ScenarioInput): Promise<ScenarioResultD
     console.warn('Backend API offline/unreachable, using resilient local ML scenario fallback:', err);
     const intensity = input.intensity || 50;
     const factor = intensity / 50.0;
-    const baseDelay = 2.1;
-    const baseCost = 14500;
-    const baseRisk = 48;
+    const scenarioType = input.scenarioType || 'fuel_surge';
     
-    const simulatedRisk = Math.min(99, Math.round(baseRisk + (24 * factor)));
-    const delayDays = Number((baseDelay + (3.2 * factor)).toFixed(1));
-    const costIncrease = Math.round(baseCost + (18000 * factor));
-    const impactScore = simulatedRisk - baseRisk;
+    // Scenario-specific multiplier tuning
+    let typeDelayMult = 1.0;
+    let typeCostMult = 1.0;
+    let typeRiskAdd = 0;
+    let scenarioTitle = 'Disruption Stress Test';
+    let mitigation = 'Shift critical freight to Dedicated Freight Corridors (DFC) and lock secondary suppliers.';
+
+    if (scenarioType === 'fuel_surge') {
+      typeDelayMult = 0.85;
+      typeCostMult = 1.65;
+      typeRiskAdd = 18;
+      scenarioTitle = 'Fuel Price Hike & Freight Surcharge';
+      mitigation = 'Lock in multi-modal rail contracts to bypass highway diesel surcharges and driver allowances.';
+    } else if (scenarioType === 'monsoon_floods') {
+      typeDelayMult = 1.85;
+      typeCostMult = 1.25;
+      typeRiskAdd = 32;
+      scenarioTitle = 'Heavy Monsoon Rainfall & Highway Inundation';
+      mitigation = 'Reroute high-value shipments via northern dry zones and activate rail wagon blocks.';
+    } else if (scenarioType === 'port_strike') {
+      typeDelayMult = 1.55;
+      typeCostMult = 1.45;
+      typeRiskAdd = 28;
+      scenarioTitle = 'Port Custom Bottleneck & Terminal Strike';
+      mitigation = 'Divert container vessels to secondary berths in Mundra & Hazira ports.';
+    } else if (scenarioType === 'supplier_outage') {
+      typeDelayMult = 2.10;
+      typeCostMult = 1.80;
+      typeRiskAdd = 38;
+      scenarioTitle = 'Tier-1 Key Component Supplier Outage';
+      mitigation = 'Activate secondary pre-qualified supplier cluster in Hosur & Gujarat industrial belts.';
+    }
+
+    // Custom slider override calculations if present
+    if (input.changes) {
+      if (input.changes.weather_risk_score !== undefined) {
+        typeDelayMult += (input.changes.weather_risk_score / 100.0) * 0.9;
+        typeRiskAdd += (input.changes.weather_risk_score / 100.0) * 15;
+      }
+      if (input.changes.port_congestion_index !== undefined) {
+        typeDelayMult += (input.changes.port_congestion_index / 10.0) * 0.8;
+        typeCostMult += (input.changes.port_congestion_index / 10.0) * 0.7;
+      }
+      if (input.changes.supplier_dependency_ratio !== undefined) {
+        typeCostMult += input.changes.supplier_dependency_ratio * 0.9;
+        typeRiskAdd += input.changes.supplier_dependency_ratio * 20;
+      }
+    }
+
+    const baseDelay = 1.8;
+    const baseCost = 14500;
+    const baseRisk = 28;
+    
+    const simulatedRisk = Math.min(99, Math.round(baseRisk + (22 * factor) + typeRiskAdd));
+    const delayDays = Number((baseDelay + (2.4 * factor * typeDelayMult)).toFixed(1));
+    const costIncrease = Math.round(baseCost + (16500 * factor * typeCostMult));
+    const impactScore = Math.max(5, simulatedRisk - baseRisk);
 
     return {
       scenarioId: `scn_ml_flbk_${Math.random().toString(36).substring(2, 9)}`,
-      scenarioName: `ML Disruption Stress Test (${intensity}% Severity)`,
+      scenarioName: `${scenarioTitle} (${intensity}% Severity)`,
       impactScoreChange: impactScore,
       simulatedRiskScore: simulatedRisk,
       newPredictedDelayDays: delayDays,
       newPredictedCostIncrease: costIncrease,
-      affectedRoutesCount: Math.max(1, Math.round(6 * factor)),
-      mitigationStrategy: 'Shift critical freight to Dedicated Freight Corridors (DFC) and lock secondary suppliers.',
+      affectedRoutesCount: Math.max(1, Math.round(4 * factor * typeDelayMult)),
+      mitigationStrategy: mitigation,
       baseline: {
         delayDays: baseDelay,
         riskScore: baseRisk,
-        riskCategory: 'Medium Risk',
+        riskCategory: 'Low Risk',
         estimatedCost: baseCost
       },
       scenario: {
@@ -201,12 +252,12 @@ export async function runScenario(input: ScenarioInput): Promise<ScenarioResultD
         estimatedCost: costIncrease - baseCost
       },
       drivers: [
-        `Disruption intensity level set at ${intensity}%`,
-        `Weather & route friction score elevated +${Math.round(25 * factor)} pts`,
-        `Terminal yard dwell time & congestion index elevated +${(2.5 * factor).toFixed(1)}`
+        `Scenario intensity applied at ${intensity}% severity.`,
+        `Stress vector: ${scenarioTitle}.`,
+        `Primary transport mode: ${input.baseShipment?.primaryTransportMode || 'Road'}`
       ],
       recommendations: [
-        'Shift high-priority freight to Dedicated Freight Corridors (DFC) or rail network.',
+        mitigation,
         'Establish 14-day safety stock buffer at regional hub centers.',
         'Pre-stage dry container drayage with backup fleet providers.'
       ],
@@ -217,7 +268,7 @@ export async function runScenario(input: ScenarioInput): Promise<ScenarioResultD
         { feature: 'infrastructure_quality', importance: 0.1369, direction: 'decreases_risk' }
       ],
       modelInfo: {
-        delayModel: 'CatBoost v2.4 (R² = 0.931)',
+        delayModel: 'CatBoost Regressor v2.4',
         delayR2: 0.931,
         riskModel: 'Calibrated Gradient Boosting Classifier',
         riskROCAUC: 0.912,

@@ -618,6 +618,45 @@ def get_risk_history(limit: int = 50, db: Session = Depends(get_db)):
 def run_scenario(req: ScenarioRequest, db: Session = Depends(get_db)):
     # Check if this is the new/unified request format
     if req.baseShipment is not None:
+        # Auto-compute scenario feature changes from scenarioType & intensity if changes dict is empty
+        if not req.changes or len(req.changes) == 0:
+            key = req.scenarioType or 'fuel_surge'
+            intensity_val = float(np.clip(req.intensity or 50, 1, 100))
+            if key == 'fuel_surge':
+                req.changes = {
+                    'geopolitical_risk_score': min(95.0, 15.0 + (intensity_val * 0.75)),
+                    'weather_risk_score': min(65.0, (req.baseShipment.weatherRiskScore or 20.0) + (intensity_val * 0.35)),
+                    'port_congestion_index': min(7.5, (req.baseShipment.portCongestionIndex or 2.0) + (intensity_val * 0.045)),
+                    'supplier_dependency_ratio': min(0.85, (req.baseShipment.supplierDependencyRatio or 0.30) + (intensity_val * 0.003))
+                }
+            elif key == 'monsoon_floods':
+                req.changes = {
+                    'weather_risk_score': min(98.0, 20.0 + (intensity_val * 0.78)),
+                    'port_congestion_index': min(8.5, 2.0 + (intensity_val * 0.055)),
+                    'geopolitical_risk_score': min(70.0, 15.0 + (intensity_val * 0.40)),
+                    'supplier_dependency_ratio': min(0.80, 0.30 + (intensity_val * 0.004))
+                }
+            elif key == 'port_strike':
+                req.changes = {
+                    'port_congestion_index': min(9.9, 2.0 + (intensity_val * 0.078)),
+                    'geopolitical_risk_score': min(88.0, 15.0 + (intensity_val * 0.65)),
+                    'weather_risk_score': min(60.0, 20.0 + (intensity_val * 0.30)),
+                    'supplier_dependency_ratio': min(0.92, 0.30 + (intensity_val * 0.005))
+                }
+            elif key == 'supplier_outage':
+                req.changes = {
+                    'supplier_dependency_ratio': min(0.95, 0.30 + (intensity_val * 0.0065)),
+                    'geopolitical_risk_score': min(85.0, 15.0 + (intensity_val * 0.55)),
+                    'port_congestion_index': min(7.5, 2.0 + (intensity_val * 0.045)),
+                    'weather_risk_score': min(55.0, 20.0 + (intensity_val * 0.25))
+                }
+            else:
+                req.changes = {
+                    'weather_risk_score': min(90.0, 20.0 + (intensity_val * 0.50)),
+                    'port_congestion_index': min(8.0, 2.0 + (intensity_val * 0.05)),
+                    'supplier_dependency_ratio': min(0.85, 0.30 + (intensity_val * 0.004))
+                }
+
         # Validate baseline fields
         validate_fields(
             req.baseShipment.weatherRiskScore,
