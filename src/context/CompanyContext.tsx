@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   CompanyData,
+  IndustryType,
   RiskScoreData,
   AlertItem,
   RiskTrendItem,
@@ -192,7 +193,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const restoredCompanyData: CompanyData = {
             info: {
               companyName: dbCompany.name || '',
-              industry: dbCompany.industry || 'Manufacturing',
+              industry: (dbCompany.industry as IndustryType) || 'Manufacturing',
               businessType: 'B2B',
               companySize: 'Medium',
               location: dbCompany.city || dbCompany.state || '',
