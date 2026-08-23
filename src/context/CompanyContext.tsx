@@ -508,14 +508,14 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         location: '',
       },
       profile: {
-        supplierCount: 0,
+        supplierCount: 5,
         primaryTransportMode: 'Road',
-        averageLeadTimeDays: 0,
-        deliveryDistanceKm: 0,
+        averageLeadTimeDays: 10,
+        deliveryDistanceKm: 450,
       },
       constraints: {
-        maxAcceptableDelayDays: 0,
-        maxAdditionalBudget: 0,
+        maxAcceptableDelayDays: 3,
+        maxAdditionalBudget: 15000,
         riskTolerance: 'Medium',
       },
       isOnboarded: false,
@@ -524,6 +524,15 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     setCompany(freshState);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(freshState));
+    if (user?.id) {
+      localStorage.setItem(`${STORAGE_KEY}_${user.id}`, JSON.stringify(freshState));
+    }
+    if (user?.email) {
+      localStorage.setItem(`${STORAGE_KEY}_${user.email}`, JSON.stringify(freshState));
+    }
+    if (userProfile.email) {
+      localStorage.setItem(`${STORAGE_KEY}_${userProfile.email}`, JSON.stringify(freshState));
+    }
   };
 
   const dismissAlert = (id: string) => {

@@ -25,12 +25,12 @@ export const Onboarding: React.FC = () => {
     completeOnboarding,
   } = useCompany();
 
-  // Redirect to dashboard if company profile is already onboarded
+  // Ensure onboarding step is at least 1 when visiting onboarding page
   useEffect(() => {
-    if (company.isOnboarded && company.info?.companyName) {
-      navigate('/dashboard', { replace: true });
+    if (!company.onboardingStep || company.onboardingStep < 1) {
+      setOnboardingStep(1);
     }
-  }, [company.info?.companyName, company.isOnboarded, navigate]);
+  }, [company.onboardingStep, setOnboardingStep]);
 
   const handleStep1Next = (data: CompanyInformationData) => {
     updateCompanyInfo(data);

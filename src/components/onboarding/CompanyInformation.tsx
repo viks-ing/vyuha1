@@ -237,7 +237,7 @@ export const CompanyInformationStep: React.FC<Props> = ({ initialData, onNext })
       </div>
 
       {/* Headquarters section with State & City */}
-      <div className="border-t border-slate-100 pt-4 mt-2 pb-24">
+      <div className="border-t border-slate-100 pt-4 mt-2 pb-6">
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
           Headquarters <span className="text-rose-500">*</span>
         </label>
