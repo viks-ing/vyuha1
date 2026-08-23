@@ -59,11 +59,23 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDirectSandboxLogin = async (demoEmail = 'enterprise@vyuha.ai', demoPass = 'vyuha1234') => {
+  const handleDirectSandboxLogin = async (demoEmail = 'admin@vyuha.ai', demoPass = 'password123') => {
     const result = await login({ email: demoEmail, password: demoPass });
     if (result) {
+      const userFullName = result.user?.fullName;
+      const userEmail = result.user?.email || demoEmail;
+
+      updateUserProfile({
+        name: userFullName || (userEmail ? userEmail.split('@')[0] : 'Sandbox User'),
+        email: userEmail,
+      });
+
       setTimeout(() => {
-        navigate('/onboarding');
+        if (company.isOnboarded || company.info?.companyName) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
       }, 400);
     }
   };
@@ -139,10 +151,26 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-slate-400">
-            Select an account below to log in directly and be routed to input your custom company details:
+            Click any sandbox account below for 1-click instant login:
           </p>
 
           <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => handleDirectSandboxLogin('admin@vyuha.ai', 'password123')}
+              disabled={isLoading}
+              className="w-full p-2.5 rounded-lg bg-slate-950/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/70 transition-all text-left group flex items-center justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Default Admin Account</span>
+                  <span className="text-[9px] bg-sky-950 text-sky-300 px-1.5 py-0.2 rounded font-mono">Recommended</span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono">admin@vyuha.ai • password123</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
+            </button>
+
             <button
               type="button"
               onClick={() => handleDirectSandboxLogin('enterprise@vyuha.ai', 'vyuha1234')}
@@ -152,7 +180,7 @@ export const LoginPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Enterprise Director Account</span>
-                  <span className="text-[9px] bg-indigo-950 text-indigo-300 px-1.5 py-0.2 rounded font-mono">Full Sandbox</span>
+                  <span className="text-[9px] bg-indigo-950 text-indigo-300 px-1.5 py-0.2 rounded font-mono font-semibold">Full Sandbox</span>
                 </div>
                 <span className="text-[11px] text-slate-400 font-mono">enterprise@vyuha.ai • vyuha1234</span>
               </div>
@@ -168,7 +196,7 @@ export const LoginPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Logistics Lead Account</span>
-                  <span className="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-mono">Fleet & Routes</span>
+                  <span className="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-semibold">Fleet & Routes</span>
                 </div>
                 <span className="text-[11px] text-slate-400 font-mono">logistics@vyuha.ai • logistics123</span>
               </div>
