@@ -41,8 +41,8 @@ export const LoginPage: React.FC = () => {
 
     const result = await login({ email, password });
     if (result) {
-      const userFullName = result.user?.fullName;
-      const userEmail = result.user?.email || email;
+      const userFullName = result.user?.fullName || result.session?.user?.user_metadata?.full_name;
+      const userEmail = result.user?.email || result.session?.user?.email || email;
 
       updateUserProfile({
         name: userFullName || (userEmail ? userEmail.split('@')[0] : 'User'),
