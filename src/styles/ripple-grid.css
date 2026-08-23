@@ -1,37 +1,23 @@
 /* Ripple Grid Animation for Vyuha AI Supply Intelligence */
 
-@keyframes ripple-pulse {
-  0% {
-    transform: scale(1);
-    background-color: var(--pulse-initial, rgba(14, 165, 233, 0.15));
-    box-shadow: 0 0 0px rgba(14, 165, 233, 0);
-  }
-  50% {
-    transform: scale(var(--pulse-scale, 1.25));
-    background-color: var(--pulse-color, rgba(14, 165, 233, 0.85));
-    box-shadow: 0 0 16px rgba(14, 165, 233, 0.7);
-    border-color: rgba(56, 189, 248, 0.9);
-    z-index: 20;
-  }
-  100% {
-    transform: scale(1);
-    background-color: var(--pulse-final, transparent);
-    box-shadow: 0 0 0px rgba(14, 165, 233, 0);
-    z-index: 1;
-  }
-}
-
-.ripple-cell-animating {
-  animation-name: ripple-pulse;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  animation-fill-mode: forwards;
-}
-
-.ripple-cell-node {
+.cell {
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
 
-.ripple-cell-node::after {
+.cell:hover {
+  border-color: rgba(14, 165, 233, 0.6) !important;
+  background-color: rgba(14, 165, 233, 0.1) !important;
+}
+
+.cell.filled {
+  background-color: var(--filled-cell-color, rgba(14, 165, 233, 0.6)) !important;
+  border-color: rgba(56, 189, 248, 0.8) !important;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+
+.cell.filled::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -40,6 +26,30 @@
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background-color: rgba(56, 189, 248, 1);
-  box-shadow: 0 0 8px rgba(14, 165, 233, 0.9);
+  background-color: #38bdf8;
+  box-shadow: 0 0 8px #0ea5e9;
+}
+
+.cell.pulse:not(.filled) {
+  animation: pulse-animation var(--pulse-duration, 350ms) forwards;
+  z-index: 10;
+}
+
+@keyframes pulse-animation {
+  0% {
+    background-color: var(--cell-color, rgba(241, 245, 249, 0.35));
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(118, 206, 250, 0);
+  }
+  50% {
+    background-color: var(--pulse-color, #76cefa);
+    transform: scale(var(--pulse-scale, 1.2));
+    box-shadow: 0 0 16px rgba(118, 206, 250, 0.8);
+    border-color: rgba(56, 189, 248, 0.9);
+  }
+  100% {
+    background-color: var(--cell-color, rgba(241, 245, 249, 0.35));
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(118, 206, 250, 0);
+  }
 }
