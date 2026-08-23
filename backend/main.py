@@ -13,21 +13,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS to allow access from Vite React frontend
-origins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:5175",
-    "http://127.0.0.1:3000",
-]
-
+# Configure CORS to allow access from Vite React frontend and deployed domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
