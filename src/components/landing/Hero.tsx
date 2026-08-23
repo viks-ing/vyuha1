@@ -21,7 +21,7 @@ export const Hero: React.FC = () => {
       <div className="max-w-5xl mx-auto w-full text-center flex flex-col items-center space-y-8 relative z-10">
         
         {/* Tagline Badge */}
-        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/95 border border-[#0066FF]/25 text-[#0066FF] text-xs sm:text-sm font-mono w-fit font-bold shadow-md shadow-[#0066FF]/10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/95 border border-[#0066FF]/25 text-[#0066FF] text-xs sm:text-sm font-sans w-fit font-bold shadow-md shadow-[#0066FF]/10 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <Sparkles className="w-4 h-4 text-[#0066FF]" />
           <span>AI-POWERED SUPPLY CHAIN INTELLIGENCE</span>
           <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-ping" />
@@ -63,8 +63,8 @@ export const Hero: React.FC = () => {
           </a>
         </div>
 
-        {/* Elaborated Existing Metrics Strip (Spans Wider, Filling Vertical & Horizontal Space) */}
-        <div className="pt-10 mt-6 border-t border-slate-200/90 grid grid-cols-1 sm:grid-cols-3 gap-8 font-mono text-xs sm:text-sm text-slate-500 w-full max-w-4xl bg-white/70 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-[#0066FF]/20 shadow-md shadow-[#0066FF]/5">
+        {/* Elaborated Existing Metrics Strip (Using Website Default Font) */}
+        <div className="pt-10 mt-6 border-t border-slate-200/90 grid grid-cols-1 sm:grid-cols-3 gap-8 font-sans text-xs sm:text-sm text-slate-500 w-full max-w-4xl bg-white/70 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-[#0066FF]/20 shadow-md shadow-[#0066FF]/5">
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#0066FF]" />

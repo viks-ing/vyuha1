@@ -258,7 +258,7 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
 
             // Hover Telemetry Data Callout Box if labeled or active
             if (force > 0.45 && p.label) {
-              ctx.font = '10px monospace';
+              ctx.font = '500 11px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
               const textWidth = ctx.measureText(p.label).width;
 
               ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
