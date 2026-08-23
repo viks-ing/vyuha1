@@ -59,7 +59,13 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDirectSandboxLogin = async (demoEmail = 'admin@vyuha.ai', demoPass = 'password123') => {
+  const [launchOnboardingOnSandbox, setLaunchOnboardingOnSandbox] = useState<boolean>(true);
+
+  const handleDirectSandboxLogin = async (
+    demoEmail = 'admin@vyuha.ai',
+    demoPass = 'password123',
+    forceOnboarding = false
+  ) => {
     const result = await login({ email: demoEmail, password: demoPass });
     if (result) {
       const userFullName = result.user?.fullName;
@@ -70,13 +76,20 @@ export const LoginPage: React.FC = () => {
         email: userEmail,
       });
 
-      setTimeout(() => {
-        if (company.isOnboarded || company.info?.companyName) {
-          navigate('/dashboard');
-        } else {
+      if (forceOnboarding || launchOnboardingOnSandbox) {
+        resetOnboarding();
+        setTimeout(() => {
           navigate('/onboarding');
-        }
-      }, 400);
+        }, 300);
+      } else {
+        setTimeout(() => {
+          if (company.isOnboarded || company.info?.companyName) {
+            navigate('/dashboard');
+          } else {
+            navigate('/onboarding');
+          }
+        }, 400);
+      }
     }
   };
 
@@ -142,66 +155,120 @@ export const LoginPage: React.FC = () => {
         <div className="mt-6 p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-cyan-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Direct Sandbox Login Accounts</span>
+              <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+              <span>Sandbox Demo Accounts</span>
             </div>
             <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-2 py-0.5 rounded font-mono font-semibold">
               INSTANT ACCESS
             </span>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Click any sandbox account below for 1-click instant login:
+          <p className="text-[11px] text-slate-300">
+            Select a sandbox account below. Toggle to input your own custom 3-step company business details or launch directly:
           </p>
 
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => handleDirectSandboxLogin('admin@vyuha.ai', 'password123')}
-              disabled={isLoading}
-              className="w-full p-2.5 rounded-lg bg-slate-950/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/70 transition-all text-left group flex items-center justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Default Admin Account</span>
-                  <span className="text-[9px] bg-sky-950 text-sky-300 px-1.5 py-0.2 rounded font-mono">Recommended</span>
-                </div>
-                <span className="text-[11px] text-slate-400 font-mono">admin@vyuha.ai • password123</span>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
-            </button>
+          {/* Explicit Toggle for 3-Step Setup Form */}
+          <label className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/90 border border-cyan-800/60 cursor-pointer hover:border-cyan-500 transition-all">
+            <input
+              type="checkbox"
+              checked={launchOnboardingOnSandbox}
+              onChange={(e) => setLaunchOnboardingOnSandbox(e.target.checked)}
+              className="w-4 h-4 accent-cyan-500 rounded cursor-pointer"
+            />
+            <div className="text-xs">
+              <span className="font-bold text-slate-100 block">Input Custom 3-Step Business Details Form</span>
+              <span className="text-[10px] text-slate-400">
+                {launchOnboardingOnSandbox
+                  ? 'Opens 3-Step Onboarding Form to enter custom company profile, supply chain & budget metrics.'
+                  : 'Skips onboarding and loads standard pre-configured demo baseline.'}
+              </span>
+            </div>
+          </label>
 
-            <button
-              type="button"
-              onClick={() => handleDirectSandboxLogin('enterprise@vyuha.ai', 'vyuha1234')}
-              disabled={isLoading}
-              className="w-full p-2.5 rounded-lg bg-slate-950/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/70 transition-all text-left group flex items-center justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Enterprise Director Account</span>
-                  <span className="text-[9px] bg-indigo-950 text-indigo-300 px-1.5 py-0.2 rounded font-mono font-semibold">Full Sandbox</span>
+          <div className="space-y-2 pt-1">
+            <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-200">Default Admin Sandbox</span>
+                  <p className="text-[11px] text-slate-400 font-mono">admin@vyuha.ai • password123</p>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">enterprise@vyuha.ai • vyuha1234</span>
+                <span className="text-[9px] bg-sky-950 text-sky-300 px-1.5 py-0.2 rounded font-mono">Recommended</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
-            </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('admin@vyuha.ai', 'password123', true)}
+                  disabled={isLoading}
+                  className="flex-1 py-1.5 px-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-all"
+                >
+                  3-Step Form Setup <ArrowRight className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('admin@vyuha.ai', 'password123', false)}
+                  disabled={isLoading}
+                  className="py-1.5 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px] transition-all"
+                >
+                  Direct Dashboard
+                </button>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => handleDirectSandboxLogin('logistics@vyuha.ai', 'logistics123')}
-              disabled={isLoading}
-              className="w-full p-2.5 rounded-lg bg-slate-950/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/70 transition-all text-left group flex items-center justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Logistics Lead Account</span>
-                  <span className="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-semibold">Fleet & Routes</span>
+            <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-200">Enterprise Director Sandbox</span>
+                  <p className="text-[11px] text-slate-400 font-mono">enterprise@vyuha.ai • vyuha1234</p>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">logistics@vyuha.ai • logistics123</span>
+                <span className="text-[9px] bg-indigo-950 text-indigo-300 px-1.5 py-0.2 rounded font-mono">Full Sandbox</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
-            </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('enterprise@vyuha.ai', 'vyuha1234', true)}
+                  disabled={isLoading}
+                  className="flex-1 py-1.5 px-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-all"
+                >
+                  3-Step Form Setup <ArrowRight className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('enterprise@vyuha.ai', 'vyuha1234', false)}
+                  disabled={isLoading}
+                  className="py-1.5 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px] transition-all"
+                >
+                  Direct Dashboard
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-200">Logistics Lead Sandbox</span>
+                  <p className="text-[11px] text-slate-400 font-mono">logistics@vyuha.ai • logistics123</p>
+                </div>
+                <span className="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-mono">Fleet & Routes</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('logistics@vyuha.ai', 'logistics123', true)}
+                  disabled={isLoading}
+                  className="flex-1 py-1.5 px-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-all"
+                >
+                  3-Step Form Setup <ArrowRight className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDirectSandboxLogin('logistics@vyuha.ai', 'logistics123', false)}
+                  disabled={isLoading}
+                  className="py-1.5 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px] transition-all"
+                >
+                  Direct Dashboard
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

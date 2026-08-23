@@ -23,7 +23,7 @@ interface TopNavbarProps {
 export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { company, alerts, userProfile, showToast } = useCompany();
+  const { company, alerts, userProfile, resetOnboarding, showToast } = useCompany();
   const { logout, user } = useAuthContext();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
@@ -318,6 +318,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
               </div>
 
               <div className="space-y-0.5">
+                <button
+                  onClick={() => {
+                    resetOnboarding();
+                    setShowDropdown(false);
+                    navigate('/onboarding');
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-bold text-sky-700 bg-sky-50/80 hover:bg-sky-100/90 rounded-lg text-left transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600 fill-sky-500" /> Relaunch 3-Step Business Setup
+                </button>
+
                 <button
                   onClick={() => {
                     navigate('/profile');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCompany } from '../context/CompanyContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -9,7 +10,8 @@ import { Building2, Truck, Save, CheckCircle2, MapPin } from 'lucide-react';
 import { indianCities } from '../data/mockData';
 
 export const Profile: React.FC = () => {
-  const { company, updateCompanyInfo, updateSupplyChainProfile, showToast } = useCompany();
+  const { company, updateCompanyInfo, updateSupplyChainProfile, resetOnboarding, showToast } = useCompany();
+  const navigate = useNavigate();
 
   const [infoState, setInfoState] = useState(company.info);
   const [profileState, setProfileState] = useState(company.profile);
@@ -43,12 +45,26 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="space-y-6 page-enter max-w-4xl mx-auto">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Company & Supply Chain Profile</h2>
-        <p className="text-sm text-slate-600">
-          Manage your organizational identity and operational logistics baselines.
-        </p>
+      {/* Header & Relaunch 3-Step Setup Form Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Company & Supply Chain Profile</h2>
+          <p className="text-xs text-slate-600 mt-0.5">
+            Manage your organizational identity and operational logistics baselines.
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            resetOnboarding();
+            navigate('/onboarding');
+          }}
+          className="bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 font-bold text-xs whitespace-nowrap shadow-2xs"
+        >
+          <Building2 className="w-4 h-4 mr-1.5 text-sky-600" /> Relaunch 3-Step Business Setup Form
+        </Button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
