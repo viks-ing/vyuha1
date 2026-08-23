@@ -18,6 +18,16 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
   return (
     <div className="min-h-screen w-full bg-slate-50 text-slate-800 flex flex-col justify-between relative overflow-hidden page-enter">
+      {/* Vyuha Logo Watermark Background */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] sm:w-[850px] lg:w-[1050px] aspect-square pointer-events-none z-0 flex items-center justify-center opacity-15 sm:opacity-20 mix-blend-multiply select-none">
+        <img 
+          src="/vyuha-logo.jpg" 
+          alt="Vyuha Logo Background" 
+          className="w-full h-full object-contain"
+        />
+      </div>
+
+
       {/* Background ambient lighting effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -25,14 +35,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       {/* Navigation Header */}
       <header className="relative z-10 p-6 md:px-12 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center shadow-md shadow-sky-600/20 group-hover:scale-105 transition-all">
-            <ShieldAlert className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-sm shadow-slate-200 group-hover:scale-105 transition-all">
+            <img src="/vyuha-logo.jpg" alt="Vyuha Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-mono text-xl font-bold tracking-wider text-slate-900">
             VYUHA<span className="text-sky-600">.AI</span>
           </span>
         </Link>
-
       </header>
 
       {/* Main Split Content Container */}
@@ -91,8 +100,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Right / Auth Form Panel */}
           <div className="col-span-1 lg:col-span-6 flex justify-center anim-slide-left delay-150">
             <div className="w-full max-w-md bg-white backdrop-blur-xl border border-slate-200 p-6 sm:p-8 rounded-2xl shadow-xl relative">
-              {/* Back button inside white card */}
-              <div className="flex justify-start mb-4">
+              {/* Top Header Row with Back button & Vyuha Logo */}
+              <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => navigate(-1)}
                   className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
@@ -100,6 +109,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                   <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
                   <span>Back</span>
                 </button>
+
+                <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs">
+                  <img src="/vyuha-logo.jpg" alt="Vyuha Logo" className="w-full h-full object-contain" />
+                </div>
               </div>
 
               <div className="mb-6 space-y-1">
@@ -113,6 +126,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         </div>
       </main>
+
 
 
 

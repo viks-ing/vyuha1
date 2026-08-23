@@ -3,19 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { ArrowRight, Sparkles, Activity, ShieldCheck, Anchor } from 'lucide-react';
 import { CursorParticleCanvas } from './CursorParticleCanvas';
+import { TypewriterEffect } from '../ui/typewriter-effect';
 
 export const Hero: React.FC = () => {
   const navigate = useNavigate();
+
+  const typewriterWords = [
+    { text: "Predict" },
+    { text: "Supply" },
+    { text: "Chain" },
+    { text: "Risk" },
+    { text: "Before" },
+    { text: "It" },
+    { text: "Becomes" },
+    { text: "a" },
+    { text: "Disruption.", className: "text-[#0066FF]" },
+  ];
 
   return (
     <section id="product" className="relative min-h-[92vh] flex flex-col items-center justify-center py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 overflow-hidden">
       {/* Interactive Cursor Particle Animation Layer (Scoped to Hero Section) */}
       <CursorParticleCanvas />
 
+      {/* Vyuha Logo Watermark Background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] sm:w-[650px] lg:w-[850px] aspect-square pointer-events-none z-0 flex items-center justify-center opacity-10 sm:opacity-15 mix-blend-multiply select-none animate-in fade-in duration-1000">
+        <img 
+          src="/vyuha-logo.jpg" 
+          alt="Vyuha Logo Background" 
+          className="w-full h-full object-contain"
+        />
+      </div>
+
       {/* Subtle Ambient Glow Orbs */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute top-1/2 right-10 w-[550px] h-[550px] bg-[#0066FF]/10 rounded-full blur-[130px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+
 
       {/* Elaborated Existing Layout Filling Whitespace Naturally */}
       <div className="max-w-5xl mx-auto w-full text-center flex flex-col items-center space-y-8 relative z-10">
@@ -27,13 +50,15 @@ export const Hero: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-ping" />
         </div>
 
-        {/* Main Headline (Elaborated Font Scale & Spacing) */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.12] max-w-4xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Predict Supply Chain Risk <br className="hidden sm:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0066FF] via-sky-600 to-cyan-600">
-            Before It Becomes a Disruption.
-          </span>
-        </h1>
+        {/* Main Headline with Typewriter Effect */}
+        <div className="max-w-4xl w-full min-h-[120px] sm:min-h-[160px] flex items-center justify-center">
+          <TypewriterEffect
+            words={typewriterWords}
+            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.12] text-center"
+            cursorClassName="bg-[#0066FF] h-8 sm:h-12 lg:h-14"
+          />
+        </div>
+
 
         {/* Supporting Paragraph Text (Elaborated Width & Typography) */}
         <p className="text-lg sm:text-xl text-slate-600 max-w-3xl leading-relaxed font-normal animate-in fade-in slide-in-from-bottom-4 duration-700">
