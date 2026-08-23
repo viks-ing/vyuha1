@@ -12,7 +12,7 @@ import { Mail, LogIn, Zap, ArrowRight } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading, error, successMessage, login } = useAuth();
-  const { company, updateUserProfile } = useCompany();
+  const { company, updateUserProfile, resetOnboarding } = useCompany();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

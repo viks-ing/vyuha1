@@ -108,10 +108,7 @@ export const BusinessConstraintsStep: React.FC<Props> = ({ initialData, onComple
         </ul>
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-slate-200 gap-3">
-        <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
-        </Button>
+      <div className="flex justify-end pt-4 border-t border-slate-200 gap-3">
         <Button type="submit" variant="primary" isLoading={isSubmitting} className="min-w-[160px]">
           <CheckCircle2 className="w-4 h-4 mr-1" /> Complete Setup
         </Button>

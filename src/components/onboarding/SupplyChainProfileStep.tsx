@@ -101,10 +101,7 @@ export const SupplyChainProfileStep: React.FC<Props> = ({ initialData, onNext, o
         />
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-slate-200 gap-3">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
-        </Button>
+      <div className="flex justify-end pt-4 border-t border-slate-200 gap-3">
         <Button type="submit">
           Next: Business Constraints <ArrowRight className="w-4 h-4 ml-1" />
         </Button>

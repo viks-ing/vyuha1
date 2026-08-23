@@ -103,7 +103,15 @@ export const Onboarding: React.FC = () => {
         {/* Back button inside the white card */}
         <div className="flex justify-start mb-6 -mt-2">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (company.onboardingStep === 2) {
+                setOnboardingStep(1);
+              } else if (company.onboardingStep === 3) {
+                setOnboardingStep(2);
+              } else {
+                navigate(-1);
+              }
+            }}
             className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
