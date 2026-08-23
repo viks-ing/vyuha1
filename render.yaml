@@ -1,20 +1,19 @@
 services:
-  # FastAPI Python ML Backend Web Service
+  # FastAPI Python ML Backend Web Service (100% Free Plan)
   - type: web
     name: vyuha-ml-backend
     env: python
     region: singapore
+    plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
-        fromDatabase:
-          name: vyuha-postgres-db
-          property: connectionString
+        value: sqlite:///./vyuha.db
 
-  # React Vite Frontend Static Site
+  # React Vite Frontend Static Site (100% Free)
   - type: web
     name: vyuha-frontend
     env: static
@@ -24,10 +23,3 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-
-# Render Free PostgreSQL Managed Database (Local to Render Cloud)
-databases:
-  - name: vyuha-postgres-db
-    region: singapore
-    databaseName: vyuhadb
-    user: vyuhauser
