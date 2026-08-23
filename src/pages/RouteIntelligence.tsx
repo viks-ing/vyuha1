@@ -167,7 +167,7 @@ export const RouteIntelligence: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-mono font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-sans font-semibold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-sky-600" />
             <span>MULTIMODAL ROUTE & WEATHER INTELLIGENCE</span>
           </div>
@@ -191,19 +191,19 @@ export const RouteIntelligence: React.FC = () => {
       </div>
 
       {/* Main Analysis Form Card */}
-      <Card className="bg-white border-slate-200 p-6 shadow-sm rounded-2xl">
+      <Card className="bg-white border-slate-200 p-6 shadow-sm rounded-2xl transition-all duration-300 hover:border-[#0066FF]/40 hover:shadow-[0_0_20px_rgba(0,102,255,0.12)]">
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             {/* Origin Input */}
             <div className="md:col-span-5 space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                <label className="text-xs font-sans font-bold uppercase text-slate-700 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-emerald-600" /> Origin Location (A)
                 </label>
                 <button
                   type="button"
                   onClick={() => setClickTarget('origin')}
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
+                  className={`text-[10px] font-sans px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
                     clickTarget === 'origin'
                       ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-300'
                       : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
@@ -216,11 +216,11 @@ export const RouteIntelligence: React.FC = () => {
                 placeholder="e.g. Hyderabad, Telangana or lat,lon"
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
-                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
+                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white transition-all hover:border-[#0066FF]/50"
               />
               {/* Hub Shortcuts */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="text-[10px] font-mono text-slate-400 self-center">Quick:</span>
+                <span className="text-[10px] font-sans text-slate-400 self-center">Quick:</span>
                 {TOP_INDIAN_HUBS.slice(0, 5).map((hub) => (
                   <button
                     key={hub}
@@ -228,7 +228,7 @@ export const RouteIntelligence: React.FC = () => {
                       setOrigin(hub);
                       setClickTarget('destination');
                     }}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-700 transition-colors border border-slate-200"
+                    className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-[#0066FF] hover:border-[#0066FF]/40 transition-all border border-slate-200 cursor-pointer"
                   >
                     {hub}
                   </button>
@@ -243,7 +243,7 @@ export const RouteIntelligence: React.FC = () => {
                 size="sm"
                 onClick={handleSwapLocations}
                 title="Swap Origin & Destination"
-                className="rounded-full w-10 h-10 p-0 border-slate-200 text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                className="rounded-full w-10 h-10 p-0 border-slate-200 text-slate-600 hover:text-[#0066FF] hover:bg-sky-50 hover:border-[#0066FF] transition-all hover:scale-110 active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
@@ -252,13 +252,13 @@ export const RouteIntelligence: React.FC = () => {
             {/* Destination Input */}
             <div className="md:col-span-5 space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                <label className="text-xs font-sans font-bold uppercase text-slate-700 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-sky-600" /> Destination Location (B)
                 </label>
                 <button
                   type="button"
                   onClick={() => setClickTarget('destination')}
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
+                  className={`text-[10px] font-sans px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
                     clickTarget === 'destination'
                       ? 'bg-sky-600 text-white font-bold ring-2 ring-sky-300'
                       : 'bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-700'
@@ -271,16 +271,16 @@ export const RouteIntelligence: React.FC = () => {
                 placeholder="e.g. Chennai, Tamil Nadu or lat,lon"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white"
+                className="font-medium text-slate-900 bg-slate-50 border-slate-300 focus:bg-white transition-all hover:border-[#0066FF]/50"
               />
               {/* Hub Shortcuts */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="text-[10px] font-mono text-slate-400 self-center">Quick:</span>
+                <span className="text-[10px] font-sans text-slate-400 self-center">Quick:</span>
                 {TOP_INDIAN_HUBS.slice(1, 6).map((hub) => (
                   <button
                     key={hub}
                     onClick={() => setDestination(hub)}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-700 transition-colors border border-slate-200"
+                    className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-[#0066FF] hover:border-[#0066FF]/40 transition-all border border-slate-200 cursor-pointer"
                   >
                     {hub}
                   </button>
@@ -291,7 +291,7 @@ export const RouteIntelligence: React.FC = () => {
 
           {/* Mode Selector Pill Buttons */}
           <div className="space-y-2 pt-2 border-t border-slate-100">
-            <label className="text-xs font-mono font-bold uppercase text-slate-700 block">Transportation Mode</label>
+            <label className="text-xs font-sans font-bold uppercase text-slate-700 block">Transportation Mode</label>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {transportModes.map((item) => (
@@ -299,24 +299,24 @@ export const RouteIntelligence: React.FC = () => {
                   key={item.mode}
                   type="button"
                   onClick={() => setTransportMode(item.mode)}
-                  className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer ${
                     transportMode === item.mode
-                      ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-200 text-sky-900 shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                      ? 'bg-sky-50/80 border-[#0066FF] ring-2 ring-[#0066FF]/20 text-[#0066FF] shadow-md shadow-[#0066FF]/10 -translate-y-0.5'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-[#0066FF]/50 hover:shadow-[0_0_12px_rgba(0,102,255,0.18)] hover:-translate-y-1'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span
-                      className={`p-2 rounded-lg ${
-                        transportMode === item.mode ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                      className={`p-2 rounded-lg transition-colors ${
+                        transportMode === item.mode ? 'bg-[#0066FF] text-white shadow-sm' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {item.icon}
                     </span>
-                    {transportMode === item.mode && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                    {transportMode === item.mode && <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF] animate-pulse" />}
                   </div>
                   <div>
-                    <span className="text-xs font-bold font-mono block">{item.label}</span>
+                    <span className="text-xs font-bold font-sans block">{item.label}</span>
                     <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">{item.desc}</span>
                   </div>
                 </button>
@@ -332,7 +332,7 @@ export const RouteIntelligence: React.FC = () => {
               onClick={handleAnalyze}
               disabled={loading}
               rightIcon={!loading ? <ArrowRight className="w-4 h-4" /> : undefined}
-              className="px-8 font-semibold text-sm"
+              className="px-8 font-semibold text-sm shadow-md shadow-[#0066FF]/20 hover:shadow-[0_0_16px_rgba(0,102,255,0.35)] transition-all hover:-translate-y-0.5 active:scale-95"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -360,46 +360,46 @@ export const RouteIntelligence: React.FC = () => {
         <div className="space-y-6 animate-in fade-in duration-500">
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-white border-slate-200 p-5 shadow-xs">
-              <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block mb-1">ORIGIN CITY</span>
+            <Card className="bg-white border-slate-200 p-5 shadow-xs transition-all duration-300 hover:border-[#0066FF]/50 hover:shadow-[0_0_15px_rgba(0,102,255,0.18)] hover:-translate-y-1 cursor-default">
+              <span className="text-[10px] font-sans uppercase text-slate-500 font-bold block mb-1">ORIGIN CITY</span>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                 <span className="text-xl font-bold text-slate-900 tracking-tight">{analysisResult.origin}</span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 mt-2 block">
+              <span className="text-[10px] font-sans text-slate-400 mt-2 block">
                 [{analysisResult.originCoords[0]}, {analysisResult.originCoords[1]}]
               </span>
             </Card>
 
-            <Card className="bg-white border-slate-200 p-5 shadow-xs">
-              <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block mb-1">DESTINATION CITY</span>
+            <Card className="bg-white border-slate-200 p-5 shadow-xs transition-all duration-300 hover:border-[#0066FF]/50 hover:shadow-[0_0_15px_rgba(0,102,255,0.18)] hover:-translate-y-1 cursor-default">
+              <span className="text-[10px] font-sans uppercase text-slate-500 font-bold block mb-1">DESTINATION CITY</span>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-600" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF]" />
                 <span className="text-xl font-bold text-slate-900 tracking-tight">{analysisResult.destination}</span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 mt-2 block">
+              <span className="text-[10px] font-sans text-slate-400 mt-2 block">
                 [{analysisResult.destinationCoords[0]}, {analysisResult.destinationCoords[1]}]
               </span>
             </Card>
 
-            <Card className="bg-white border-slate-200 p-5 shadow-xs">
-              <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block mb-1">TOTAL ROUTE DISTANCE</span>
+            <Card className="bg-white border-slate-200 p-5 shadow-xs transition-all duration-300 hover:border-[#0066FF]/50 hover:shadow-[0_0_15px_rgba(0,102,255,0.18)] hover:-translate-y-1 cursor-default">
+              <span className="text-[10px] font-sans uppercase text-slate-500 font-bold block mb-1">TOTAL ROUTE DISTANCE</span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-mono font-extrabold text-sky-600 tracking-tight">
+                <span className="text-3xl font-sans font-extrabold text-[#0066FF] tracking-tight">
                   {analysisResult.distance_km.toLocaleString()}
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-500">KM</span>
+                <span className="text-xs font-sans font-bold text-slate-500">KM</span>
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">Mode: {analysisResult.transport_mode} Corridor</span>
             </Card>
 
-            <Card className="bg-white border-slate-200 p-5 shadow-xs">
-              <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block mb-1">ESTIMATED TRAVEL TIME</span>
+            <Card className="bg-white border-slate-200 p-5 shadow-xs transition-all duration-300 hover:border-[#0066FF]/50 hover:shadow-[0_0_15px_rgba(0,102,255,0.18)] hover:-translate-y-1 cursor-default">
+              <span className="text-[10px] font-sans uppercase text-slate-500 font-bold block mb-1">ESTIMATED TRAVEL TIME</span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-mono font-extrabold text-slate-900 tracking-tight">
+                <span className="text-3xl font-sans font-extrabold text-slate-900 tracking-tight">
                   {analysisResult.estimated_travel_time_hours}
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-500">HOURS</span>
+                <span className="text-xs font-sans font-bold text-slate-500">HOURS</span>
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">
                 (~{(analysisResult.estimated_travel_time_hours / 24).toFixed(1)} days travel time)
@@ -411,7 +411,7 @@ export const RouteIntelligence: React.FC = () => {
           {routeAlertsData && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Origin Weather Card */}
-              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-slate-50 p-5 shadow-xs relative overflow-hidden">
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-slate-50 p-5 shadow-xs relative overflow-hidden transition-all duration-300 hover:border-emerald-400 hover:shadow-[0_0_18px_rgba(16,185,129,0.20)] hover:-translate-y-1">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-sm">
@@ -419,7 +419,7 @@ export const RouteIntelligence: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-sans uppercase font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
                           ORIGIN LIVE WEATHER
                         </span>
                         <Badge variant={routeAlertsData.originWeather.severity}>
@@ -430,7 +430,7 @@ export const RouteIntelligence: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-bold font-mono text-slate-900">
+                    <span className="text-2xl font-bold font-sans text-slate-900">
                       {routeAlertsData.originWeather.temperatureC}°C
                     </span>
                     <span className="text-[11px] text-slate-500 block">{routeAlertsData.originWeather.condition}</span>
@@ -438,31 +438,31 @@ export const RouteIntelligence: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-200/70 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">RAIN RATE</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-emerald-300 hover:bg-emerald-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">RAIN RATE</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.originWeather.rainRateMm} mm/h</span>
                   </div>
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">WIND SPEED</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-emerald-300 hover:bg-emerald-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">WIND SPEED</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.originWeather.windSpeedKmh} km/h</span>
                   </div>
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">HUMIDITY</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-emerald-300 hover:bg-emerald-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">HUMIDITY</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.originWeather.humidityPct}%</span>
                   </div>
                 </div>
               </Card>
 
               {/* Destination Weather Card */}
-              <Card className="border-sky-200 bg-gradient-to-br from-sky-50/50 via-white to-slate-50 p-5 shadow-xs relative overflow-hidden">
+              <Card className="border-sky-200 bg-gradient-to-br from-sky-50/50 via-white to-slate-50 p-5 shadow-xs relative overflow-hidden transition-all duration-300 hover:border-[#0066FF]/50 hover:shadow-[0_0_18px_rgba(0,102,255,0.20)] hover:-translate-y-1">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-sky-600 text-white shadow-sm">
+                    <div className="p-2.5 rounded-xl bg-[#0066FF] text-white shadow-sm">
                       <MapPin className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase font-bold text-sky-700 bg-sky-100/70 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-sans uppercase font-bold text-sky-700 bg-sky-100/70 px-2 py-0.5 rounded">
                           DESTINATION LIVE WEATHER
                         </span>
                         <Badge variant={routeAlertsData.destWeather.severity}>
@@ -473,7 +473,7 @@ export const RouteIntelligence: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-bold font-mono text-slate-900">
+                    <span className="text-2xl font-bold font-sans text-slate-900">
                       {routeAlertsData.destWeather.temperatureC}°C
                     </span>
                     <span className="text-[11px] text-slate-500 block">{routeAlertsData.destWeather.condition}</span>
@@ -481,16 +481,16 @@ export const RouteIntelligence: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-200/70 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">RAIN RATE</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-[#0066FF]/40 hover:bg-sky-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">RAIN RATE</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.destWeather.rainRateMm} mm/h</span>
                   </div>
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">WIND SPEED</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-[#0066FF]/40 hover:bg-sky-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">WIND SPEED</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.destWeather.windSpeedKmh} km/h</span>
                   </div>
-                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] text-slate-400 block font-mono">HUMIDITY</span>
+                  <div className="bg-white/80 p-2 rounded-lg border border-slate-200/60 transition-all hover:border-[#0066FF]/40 hover:bg-sky-50/40">
+                    <span className="text-[10px] text-slate-400 block font-sans font-bold">HUMIDITY</span>
                     <span className="font-bold text-slate-800">{routeAlertsData.destWeather.humidityPct}%</span>
                   </div>
                 </div>
@@ -606,9 +606,9 @@ export const RouteIntelligence: React.FC = () => {
           </div>
 
           {/* Transfer to New Analysis Bridge Card */}
-          <Card className="bg-gradient-to-r from-sky-900 via-indigo-950 to-slate-950 text-white p-6 rounded-2xl shadow-lg border border-sky-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <Card className="bg-gradient-to-r from-sky-900 via-indigo-950 to-slate-950 text-white p-6 rounded-2xl shadow-lg border border-sky-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-300 hover:border-sky-500 hover:shadow-[0_0_20px_rgba(14,165,233,0.30)]">
             <div className="space-y-1">
-              <span className="text-xs font-mono text-sky-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-sans text-sky-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-sky-400" /> DIRECT ML ENGINE BRIDGE
               </span>
               <h4 className="text-lg font-bold text-white">Evaluate Disruption Risk for this Route</h4>
@@ -631,17 +631,17 @@ export const RouteIntelligence: React.FC = () => {
                   },
                 });
               }}
-              className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs whitespace-nowrap"
+              className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs whitespace-nowrap shadow-md hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] transition-all hover:-translate-y-0.5"
             >
               <Play className="w-4 h-4 mr-2 fill-current" /> Run ML Analysis on this Route
             </Button>
           </Card>
 
           {/* Vyuha ML System Integration Payload */}
-          <Card className="bg-slate-900 text-white p-6 rounded-2xl shadow-md border border-slate-800 space-y-4">
+          <Card className="bg-slate-900 text-white p-6 rounded-2xl shadow-md border border-slate-800 space-y-4 transition-all duration-300 hover:border-cyan-600/50 hover:shadow-[0_0_18px_rgba(6,182,212,0.20)]">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
-                <span className="text-xs font-mono text-sky-400 font-bold uppercase tracking-wider block">
+                <span className="text-xs font-sans text-sky-400 font-bold uppercase tracking-wider block">
                   VYUHA ML PREDICTION SYSTEM READY
                 </span>
                 <h4 className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
