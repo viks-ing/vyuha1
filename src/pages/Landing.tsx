@@ -8,16 +8,20 @@ import { Features } from '../components/landing/Features';
 import { HowVyuhaWorks } from '../components/landing/HowVyuhaWorks';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/Footer';
+import { CursorParticleCanvas } from '../components/landing/CursorParticleCanvas';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-sky-500/20 selection:text-sky-900 relative page-enter">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-sky-500/20 selection:text-sky-900 relative page-enter overflow-x-hidden">
+      {/* Interactive Cursor Particle Animation Layer */}
+      <CursorParticleCanvas />
+
       <Navbar />
 
       {/* Floating Go Back button at top-left */}
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 relative z-10">
         <button
           onClick={() => navigate(-1)}
           className="group inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 bg-white hover:bg-sky-50/50 px-3.5 py-2 rounded-xl border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer"
@@ -27,7 +31,7 @@ export const LandingPage: React.FC = () => {
         </button>
       </div>
 
-      <main className="flex-grow">
+      <main className="flex-grow relative z-10">
         <Hero />
         <TrustStrip />
         <Features />
