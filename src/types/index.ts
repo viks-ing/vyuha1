@@ -68,6 +68,7 @@ export interface RiskScoreData {
   expectedCostTrend: string;
   supplierExposurePercent: number;
   supplierExposureTrend: string;
+  recommendations?: string[];
 }
 
 export interface AlertTelemetry {

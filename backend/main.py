@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, company, risk
+import models
+from database import engine, Base
+
+# Create tables in Postgres database if they don't exist
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="VYUHA Supply Chain Risk Intelligence API",

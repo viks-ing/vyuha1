@@ -294,3 +294,140 @@ code {
     border-right-color: var(--border);
   }
 }
+
+/* ============================================================
+   VYUHA MICRO-ANIMATION SYSTEM
+   ============================================================ */
+
+/* --- Keyframes --- */
+
+@keyframes vyuha-fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vyuha-fade-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vyuha-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes vyuha-slide-left {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes vyuha-slide-right {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes vyuha-scale-in {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes vyuha-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+@keyframes vyuha-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.0); }
+  50%       { box-shadow: 0 0 20px 5px rgba(56, 189, 248, 0.18); }
+}
+
+@keyframes vyuha-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+
+@keyframes vyuha-spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes vyuha-number-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* --- Page-level entry --- */
+.page-enter {
+  animation: vyuha-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --- Staggered grid children --- */
+.stagger-children > * {
+  opacity: 0;
+  animation: vyuha-fade-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-children > *:nth-child(1)  { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(2)  { animation-delay: 0.13s; }
+.stagger-children > *:nth-child(3)  { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(4)  { animation-delay: 0.27s; }
+.stagger-children > *:nth-child(5)  { animation-delay: 0.34s; }
+.stagger-children > *:nth-child(6)  { animation-delay: 0.41s; }
+.stagger-children > *:nth-child(7)  { animation-delay: 0.48s; }
+.stagger-children > *:nth-child(8)  { animation-delay: 0.55s; }
+
+/* --- Individual animation classes --- */
+.anim-fade-up     { animation: vyuha-fade-up     0.48s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-fade-down   { animation: vyuha-fade-down   0.42s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-fade-in     { animation: vyuha-fade-in     0.4s  ease both; }
+.anim-slide-left  { animation: vyuha-slide-left  0.42s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-slide-right { animation: vyuha-slide-right 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-scale-in    { animation: vyuha-scale-in    0.38s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-float       { animation: vyuha-float 3.6s ease-in-out infinite; }
+.anim-spin-slow   { animation: vyuha-spin-slow 9s linear infinite; }
+.anim-pulse-glow  { animation: vyuha-pulse-glow 2.8s ease-in-out infinite; }
+.anim-number-pop  { animation: vyuha-number-pop 0.38s ease-out; }
+
+/* --- Delay utilities --- */
+.delay-75  { animation-delay: 0.075s !important; }
+.delay-100 { animation-delay: 0.10s  !important; }
+.delay-150 { animation-delay: 0.15s  !important; }
+.delay-200 { animation-delay: 0.20s  !important; }
+.delay-300 { animation-delay: 0.30s  !important; }
+.delay-400 { animation-delay: 0.40s  !important; }
+.delay-500 { animation-delay: 0.50s  !important; }
+
+/* --- Hover lift for cards --- */
+.hover-lift {
+  transition: transform 0.22s cubic-bezier(0.22,1,0.36,1),
+              box-shadow 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px -8px rgba(0,0,0,0.13);
+}
+
+/* --- Shimmer skeleton --- */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+  background-size: 600px 100%;
+  animation: vyuha-shimmer 1.5s infinite linear;
+  border-radius: 6px;
+}
+
+/* --- Tailwind animate-in polyfill (used by some pages already) --- */
+.animate-in {
+  animation: vyuha-fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+.fade-in { animation: vyuha-fade-in 0.4s ease both; }
+.duration-300 { animation-duration: 0.3s !important; }
+
+/* --- Live badge pulse --- */
+.animate-pulse-subtle {
+  animation: pulse-subtle 2.2s ease-in-out infinite;
+}

@@ -163,7 +163,7 @@ export const RouteIntelligence: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 page-enter max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
@@ -621,7 +621,7 @@ export const RouteIntelligence: React.FC = () => {
               variant="primary"
               size="lg"
               onClick={() => {
-                navigate('/analysis', {
+                navigate('/new-analysis', {
                   state: {
                     origin: analysisResult.origin,
                     destination: analysisResult.destination,

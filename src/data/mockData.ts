@@ -166,7 +166,7 @@ export const mockAnalysisHistory: AnalysisHistoryItem[] = [
     expectedCost: 12500,
     status: 'High',
     primaryScenario: 'Monsoon Route Disruption & Fuel Hike',
-    createdByName: 'Rajesh Sharma',
+    createdByName: 'Aneesh Deva',
   },
   {
     id: 'ANL-2026-07',
@@ -188,7 +188,7 @@ export const mockAnalysisHistory: AnalysisHistoryItem[] = [
     expectedCost: 9600,
     status: 'Medium',
     primaryScenario: 'Semiconductor Lead Time Spike',
-    createdByName: 'Rajesh Sharma',
+    createdByName: 'Aneesh Deva',
   },
   {
     id: 'ANL-2026-05',
@@ -210,7 +210,7 @@ export const mockAnalysisHistory: AnalysisHistoryItem[] = [
     expectedCost: 6800,
     status: 'Medium',
     primaryScenario: 'Single-Vendor Concentration Test',
-    createdByName: 'Rajesh Sharma',
+    createdByName: 'Aneesh Deva',
   },
 ];
 
@@ -268,8 +268,8 @@ export const mockScenarios: ScenarioItem[] = [
 ];
 
 export const mockUserProfile: UserProfile = {
-  name: 'Rajesh Sharma',
-  email: 'rajesh.sharma@apexmotorworks.in',
+  name: 'Aneesh Deva',
+  email: 'aneesh.deva@vyuha.ai',
   role: 'Head of Supply Chain & Procurement',
   phone: '+91 98230 41190',
   department: 'Logistics Operations',

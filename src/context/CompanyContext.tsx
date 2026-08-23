@@ -362,6 +362,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         supplierExposurePercent: Math.min(95, Math.max(10, Math.round(suppliers * 12))),
         supplierExposureTrend: `${Math.max(1, Math.round(suppliers * 0.6))} of ${suppliers} suppliers at risk`,
         factors: dynamicFactors,
+        recommendations: res.recommendations || [],
       });
 
       // Update Trend and Breakdown with real ML score

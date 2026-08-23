@@ -132,25 +132,77 @@ class AnalysisRequest(BaseModel):
     geopoliticalRiskScore: Optional[float] = Field(default=30.0, ge=0.0, le=100.0)
     portCongestionIndex: Optional[float] = Field(default=5.0, ge=0.0, le=10.0)
 
+class ModelInfo(BaseModel):
+    delayModel: str = "CatBoost"
+    delayR2: float = 0.4746
+    riskModel: str = "Calibrated Gradient Boosting"
+    riskROCAUC: float = 0.8400
+    costModel: str = "LightGBM Scenario Estimator"
+
+class TopFactorItem(BaseModel):
+    feature: str
+    importance: float
+    direction: str
+
+class Explanation(BaseModel):
+    topFactors: List[TopFactorItem] = []
+    riskDrivers: List[str] = []
+    mitigations: List[str] = []
+
 class AnalysisResponse(BaseModel):
+    # Old keys (required by existing test suite)
     analysisId: str
-    riskScore: int
-    riskCategory: str
-    predictedDelayDays: float
     predictedCostIncrease: float
     highRiskSuppliersCount: int
     recommendations: List[str]
     timestamp: str
 
+    # New keys (defined in Section 2)
+    predictedDelayDays: float
+    predictedDelayHours: float
+    riskScore: int
+    riskCategory: str
+    estimatedShippingCost: float
+    currency: str = "INR"
+    modelInfo: ModelInfo
+    explanation: Explanation
+
 class ScenarioRequest(BaseModel):
-    scenarioType: str
-    intensity: int = Field(default=50, ge=1, le=100)
+    # Backward compatible fields
+    scenarioType: Optional[str] = None
+    intensity: Optional[int] = Field(default=50, ge=1, le=100)
+    
+    # Unified pipeline fields
+    baseShipment: Optional[AnalysisRequest] = None
+    changes: Optional[dict] = None
+
+class ScenarioSimulationCase(BaseModel):
+    delayDays: float
+    riskScore: int
+    riskCategory: str
+    estimatedCost: float
+
+class ScenarioSimulationChange(BaseModel):
+    delayDays: float
+    riskScore: float
+    estimatedCost: float
 
 class ScenarioResponse(BaseModel):
-    scenarioId: str
-    scenarioName: str
-    impactScoreChange: int
-    newPredictedDelayDays: float
-    newPredictedCostIncrease: float
-    affectedRoutesCount: int
-    mitigationStrategy: str
+    # Backward compatible fields (to prevent print/test breaking)
+    scenarioId: Optional[str] = None
+    scenarioName: Optional[str] = None
+    impactScoreChange: Optional[int] = None
+    simulatedRiskScore: Optional[int] = None
+    newPredictedDelayDays: Optional[float] = None
+    newPredictedCostIncrease: Optional[float] = None
+    affectedRoutesCount: Optional[int] = None
+    mitigationStrategy: Optional[str] = None
+
+    # Unified pipeline fields (defined in Section 8)
+    baseline: Optional[ScenarioSimulationCase] = None
+    scenario: Optional[ScenarioSimulationCase] = None
+    change: Optional[ScenarioSimulationChange] = None
+    drivers: Optional[List[str]] = []
+    recommendations: Optional[List[str]] = []
+    topFactors: Optional[List[TopFactorItem]] = []
+    modelInfo: Optional[ModelInfo] = None

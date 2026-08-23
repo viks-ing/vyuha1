@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Input } from '../components/ui/Input';
@@ -7,15 +7,38 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { mockAnalysisHistory } from '../data/mockData';
 import { formatINR } from '../lib/utils';
-import { History as HistoryIcon, Search, Eye, Filter, Download } from 'lucide-react';
+import { History as HistoryIcon, Search, Eye, Filter, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { useCompany } from '../context/CompanyContext';
+import { getRiskHistory, HistoryRecord } from '../services/riskApi';
 
 export const History: React.FC = () => {
   const { showToast } = useCompany();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [historyItems, setHistoryItems] = useState<HistoryRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const filteredHistory = mockAnalysisHistory.filter((item) => {
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    try {
+      const records = await getRiskHistory();
+      if (records && records.length > 0) {
+        setHistoryItems(records);
+      } else {
+        setHistoryItems(mockAnalysisHistory as any);
+      }
+    } catch (err) {
+      setHistoryItems(mockAnalysisHistory as any);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const filteredHistory = historyItems.filter((item) => {
     const matchesSearch =
       item.analysisName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.primaryScenario.toLowerCase().includes(searchTerm.toLowerCase());
@@ -24,7 +47,7 @@ export const History: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 page-enter">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -34,13 +57,18 @@ export const History: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Analysis History</h2>
           <p className="text-sm text-slate-600">
-            Review past risk projections, scenario runs, and historical supply chain vulnerability scores.
+            Review past risk projections, scenario runs, and historical supply chain vulnerability scores saved in database.
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={() => showToast('Exporting history report to CSV...')}>
-          <Download className="w-4 h-4 mr-2" /> Export History
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchHistory} isLoading={isLoading}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Refresh DB Records
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showToast('Exporting history report to CSV...')}>
+            <Download className="w-4 h-4 mr-2" /> Export History
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Toolbar Card */}
@@ -88,7 +116,14 @@ export const History: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredHistory.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-sky-600 mb-2" />
+                    Loading database analysis history...
+                  </TableCell>
+                </TableRow>
+              ) : filteredHistory.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-slate-500">
                     No matching analysis records found. Try adjusting your search query.
@@ -132,3 +167,4 @@ export const History: React.FC = () => {
     </div>
   );
 };
+

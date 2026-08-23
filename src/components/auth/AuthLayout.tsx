@@ -17,7 +17,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 text-slate-800 flex flex-col justify-between relative overflow-hidden">
+    <div className="min-h-screen w-full bg-slate-50 text-slate-800 flex flex-col justify-between relative overflow-hidden page-enter">
       {/* Background ambient lighting effects */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -40,7 +40,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
           {/* Left / Info Branding Banner (Visible on Desktop) */}
-          <div className="hidden lg:flex lg:col-span-6 flex-col justify-center space-y-6 pr-8 border-r border-slate-200">
+          <div className="hidden lg:flex lg:col-span-6 flex-col justify-center space-y-6 pr-8 border-r border-slate-200 anim-slide-right">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-mono w-fit font-semibold">
               <Cpu className="w-3.5 h-3.5" />
               <span>INDIAN SUPPLY CHAIN RISK ENGINE</span>
@@ -89,7 +89,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </div>
 
           {/* Right / Auth Form Panel */}
-          <div className="col-span-1 lg:col-span-6 flex justify-center">
+          <div className="col-span-1 lg:col-span-6 flex justify-center anim-slide-left delay-150">
             <div className="w-full max-w-md bg-white backdrop-blur-xl border border-slate-200 p-6 sm:p-8 rounded-2xl shadow-xl relative">
               {/* Back button inside white card */}
               <div className="flex justify-start mb-4">

@@ -70,13 +70,23 @@ function translateWmoCode(code: number): { desc: string; severity: AlertSeverity
 /**
  * Direct browser query to Open-Meteo public meteorological API
  */
+// Simple in-memory cache: key = "lat,lon" → { data, expiresAt }
+const _weatherCache = new Map<string, { data: any; expiresAt: number }>();
+
 async function fetchDirectCorridorWeather(lat: number, lon: number) {
+  const key = `${lat},${lon}`;
+  const now = Date.now();
+  const cached = _weatherCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.data;
+
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m&timezone=auto`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
     if (res.ok) {
       const data = await res.json();
-      return data.current || null;
+      const result = data.current || null;
+      _weatherCache.set(key, { data: result, expiresAt: now + 5 * 60 * 1000 }); // cache 5 min
+      return result;
     }
   } catch (err) {
     console.warn('Open-Meteo direct fetch notice:', err);
@@ -88,11 +98,18 @@ async function fetchDirectCorridorWeather(lat: number, lon: number) {
  * Direct browser query to Open Exchange Rate API for USD/INR live rate
  */
 async function fetchDirectUsdInrRate(): Promise<number> {
+  const FOREX_KEY = '__forex__';
+  const now = Date.now();
+  const cached = _weatherCache.get(FOREX_KEY);
+  if (cached && cached.expiresAt > now) return cached.data;
+
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(3000) });
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(2000) });
     if (res.ok) {
       const data = await res.json();
-      return Number(data?.rates?.INR || 86.82);
+      const rate = Number(data?.rates?.INR || 86.82);
+      _weatherCache.set(FOREX_KEY, { data: rate, expiresAt: now + 10 * 60 * 1000 }); // cache 10 min
+      return rate;
     }
   } catch (err) {
     // fallback

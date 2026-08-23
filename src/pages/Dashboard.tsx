@@ -29,7 +29,7 @@ export const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 page-enter">
       {/* Header Greeting Banner */}
       <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 p-6 md:p-8 rounded-3xl border border-slate-800 shadow-xl">
         {/* Subtle background glow effect */}
@@ -132,6 +132,32 @@ export const Dashboard: React.FC = () => {
         <RiskTrendChart data={riskTrendData} />
         <RiskFactorBreakdown data={riskFactorBreakdown} />
       </div>
+
+      {/* AI MITIGATION RECOMMENDATIONS */}
+      {riskData.recommendations && riskData.recommendations.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+          <div className="flex items-center gap-3 border-b border-slate-800 pb-4 mb-6">
+            <div className="p-2 bg-indigo-950/80 rounded-xl border border-indigo-800/40">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">AI Mitigation Recommendations</h3>
+              <p className="text-xs text-slate-400">Dynamic model-driven action items for your supply chain profile</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {riskData.recommendations.map((rec, idx) => (
+              <div key={idx} className="flex items-start gap-3.5 bg-slate-950/40 border border-slate-800/80 p-4 rounded-2xl hover:border-slate-700/60 transition-all duration-200">
+                <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-950 text-indigo-400 text-xs font-bold shrink-0 mt-0.5 border border-indigo-800/20">
+                  {idx + 1}
+                </span>
+                <span className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">{rec}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

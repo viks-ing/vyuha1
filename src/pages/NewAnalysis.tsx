@@ -62,8 +62,15 @@ export const NewAnalysis: React.FC = () => {
     weatherRiskScore?: number;
   } | null;
 
+  // Track whether this analysis was launched from a specific route
+  const isRouteSeeded = !!(navState?.origin && navState?.destination);
+  // Keep nav-state weather score as seed until live alerts load
+  const navWeatherScore = navState?.weatherRiskScore ?? null;
+
   const [form, setForm] = useState({
-    analysisName: 'Logistics Route Risk & Cost Audit',
+    analysisName: isRouteSeeded
+      ? `Route Analysis: ${navState?.origin?.split(',')[0]} → ${navState?.destination?.split(',')[0]}`
+      : 'Logistics Route Risk & Cost Audit',
     originHub: navState?.origin || company.info?.location || 'Hyderabad, Telangana',
     destinationHub: navState?.destination || 'Kolkata, West Bengal',
     period: 'Q3 2026 (Jul - Sep)',
@@ -80,6 +87,15 @@ export const NewAnalysis: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [routeAlerts, setRouteAlerts] = useState<RouteDisruptionAlertsResult | null>(null);
+  const [hasRun, setHasRun] = useState<boolean>(false);
+
+  // Stable refs — always hold the latest values without closure issues
+  const formRef = React.useRef(form);
+  const routeAlertsRef = React.useRef(routeAlerts);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { formRef.current = form; }, [form]);
+  useEffect(() => { routeAlertsRef.current = routeAlerts; }, [routeAlerts]);
 
   // Helper to compute dynamic scenario label from live weather score
   const getScenarioFromWeatherScore = useCallback((score: number, originCondition?: string) => {
@@ -97,8 +113,11 @@ export const NewAnalysis: React.FC = () => {
     let isMounted = true;
     const fetchWeather = async () => {
       try {
-        const originCoords = await geocodeLocation(form.originHub);
-        const destCoords = await geocodeLocation(form.destinationHub);
+      // Geocode both endpoints in parallel to cut wait time in half
+        const [originCoords, destCoords] = await Promise.all([
+          geocodeLocation(form.originHub),
+          geocodeLocation(form.destinationHub),
+        ]);
         const alertsData = await fetchRouteSpecificAlerts(
           form.originHub.split(',')[0],
           form.destinationHub.split(',')[0],
@@ -127,82 +146,101 @@ export const NewAnalysis: React.FC = () => {
     };
   }, [form.originHub, form.destinationHub, form.transportMode, autoSyncWeatherScenario, getScenarioFromWeatherScore]);
 
-  // Trigger real-time calculation whenever any input parameter changes live
+  // Helper: run ML and update result state
+  // Uses formRef so it always reads latest slider/input values without stale closures
+  const runMLCalc = useCallback(async (overrideWeather?: number) => {
+    const f = formRef.current; // always latest
+    const isMonsoon = f.scenario.includes('Monsoon') || f.scenario.includes('Heavy Rainfall');
+    const isModerateRain = f.scenario.includes('Moderate Rain') || f.scenario.includes('Precipitation');
+    const isPort = f.scenario.includes('Port');
+    const isDiesel = f.scenario.includes('Diesel');
+    const isSupplier = f.scenario.includes('Supplier');
+
+    // Priority: explicit override > live route alerts > nav-state seed > scenario-derived fallback
+    const liveWeatherScore =
+      overrideWeather ??
+      routeAlerts?.weatherRiskScore ??
+      navWeatherScore ??
+      (isMonsoon ? 85.0 : isModerateRain ? 45.0 : 20.0);
+    const portCongestion = isPort ? 8.8 : 2.0;
+    const geoRisk = isDiesel ? 45.0 : 15.0;
+    const supplierDep = isSupplier
+      ? 0.92
+      : Math.min(0.85, Math.max(0.15, 1.0 / Math.sqrt(Math.max(1, Number(f.supplierCount)))));
+    const shipmentWeight = isDiesel
+      ? 4000.0
+      : Math.min(10000.0, Math.max(50.0, Number(f.supplierCount) * 250.0));
+
+    const apiResult = await analyzeRisk({
+      supplierCount: Number(f.supplierCount),
+      primaryTransportMode: f.transportMode,
+      averageLeadTimeDays: Number(f.averageLeadTimeDays),
+      deliveryDistanceKm: Number(f.deliveryDistanceKm),
+      maxAcceptableDelayDays: 3,
+      maxAdditionalBudget: Number(f.maxAdditionalBudget),
+      supplierDependencyRatio: supplierDep,
+      weatherRiskScore: liveWeatherScore,
+      geopoliticalRiskScore: geoRisk,
+      portCongestionIndex: portCongestion,
+      shipmentWeightKg: shipmentWeight,
+    });
+
+    const supplierScore = Math.min(95, Math.max(15, Math.round(apiResult.riskScore * 0.85 + (Number(f.supplierCount) < 3 ? 18 : -5))));
+    const transportScore = Math.min(95, Math.max(20, Math.round(Number(f.deliveryDistanceKm) / 22 + (f.transportMode === 'Road' ? 24 : 12))));
+    const weatherScore = Math.min(95, Math.max(10, Math.round(liveWeatherScore)));
+    const costScore = Math.min(95, Math.max(15, Math.round(apiResult.predictedCostIncrease / 450)));
+
+    const breakdownChartData = [
+      { vector: 'Corridor Transit Risk', liveScore: transportScore, baseline: 45 },
+      { vector: 'Weather Risk (Open-Meteo)', liveScore: weatherScore, baseline: 40 },
+      { vector: 'Supplier Concentration', liveScore: supplierScore, baseline: 50 },
+      { vector: 'Tariff & Fuel Surcharge', liveScore: costScore, baseline: 55 },
+    ];
+
+    setResult({
+      score: apiResult.riskScore,
+      status: apiResult.riskCategory.toUpperCase(),
+      expectedDelay: apiResult.predictedDelayDays,
+      expectedCost: apiResult.predictedCostIncrease,
+      primaryDriver: f.scenario,
+      confidence: '98.2%',
+      recommendations: apiResult.recommendations,
+      breakdownData: breakdownChartData,
+      weatherScore,
+      transportScore,
+      supplierScore,
+      costScore,
+    });
+    setHasRun(true);
+  // formRef is stable, routeAlerts/navWeatherScore are the only real deps
+  }, [routeAlerts, navWeatherScore]);
+
+  // When seeded from RouteIntelligence, auto-run immediately using route-specific params
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        const isMonsoon = form.scenario.includes('Monsoon') || form.scenario.includes('Heavy Rainfall');
-        const isModerateRain = form.scenario.includes('Moderate Rain') || form.scenario.includes('Precipitation');
-        const isPort = form.scenario.includes('Port');
-        const isDiesel = form.scenario.includes('Diesel');
-        const isSupplier = form.scenario.includes('Supplier');
+    if (isRouteSeeded) {
+      setIsRunning(true);
+      runMLCalc(navWeatherScore ?? undefined).finally(() => setIsRunning(false));
+    }
+    // Only fires on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-        const liveWeatherScore = routeAlerts?.weatherRiskScore ?? (isMonsoon ? 85.0 : isModerateRain ? 45.0 : 20.0);
-        const portCongestion = isPort ? 8.8 : 2.0;
-        const geoRisk = isDiesel ? 45.0 : 15.0;
-        const supplierDep = isSupplier
-          ? 0.92
-          : Math.min(0.85, Math.max(0.15, 1.0 / Math.sqrt(Math.max(1, Number(form.supplierCount)))));
-        const shipmentWeight = isDiesel
-          ? 4000.0
-          : Math.min(10000.0, Math.max(50.0, Number(form.supplierCount) * 250.0));
+  // Debounced recalculation — called directly from slider/input onChange handlers
+  const triggerRecalc = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const f = formRef.current;
+      const alerts = routeAlertsRef.current;
+      const isMonsoon = f.scenario.includes('Monsoon') || f.scenario.includes('Heavy Rainfall');
+      const isModerateRain = f.scenario.includes('Moderate Rain') || f.scenario.includes('Precipitation');
+      const weatherScore =
+        alerts?.weatherRiskScore ??
+        navWeatherScore ??
+        (isMonsoon ? 85.0 : isModerateRain ? 45.0 : 20.0);
 
-        const apiResult = await analyzeRisk({
-          supplierCount: Number(form.supplierCount),
-          primaryTransportMode: form.transportMode,
-          averageLeadTimeDays: Number(form.averageLeadTimeDays),
-          deliveryDistanceKm: Number(form.deliveryDistanceKm),
-          maxAcceptableDelayDays: 3,
-          maxAdditionalBudget: Number(form.maxAdditionalBudget),
-          supplierDependencyRatio: supplierDep,
-          weatherRiskScore: liveWeatherScore,
-          geopoliticalRiskScore: geoRisk,
-          portCongestionIndex: portCongestion,
-          shipmentWeightKg: shipmentWeight,
-        });
-
-        // Compute dynamic multi-factor operational breakdown
-        const supplierScore = Math.min(95, Math.max(15, Math.round(apiResult.riskScore * 0.85 + (Number(form.supplierCount) < 3 ? 18 : -5))));
-        const transportScore = Math.min(95, Math.max(20, Math.round(Number(form.deliveryDistanceKm) / 22 + (form.transportMode === 'Road' ? 24 : 12))));
-        const weatherScore = Math.min(95, Math.max(10, Math.round(liveWeatherScore)));
-        const costScore = Math.min(95, Math.max(15, Math.round(apiResult.predictedCostIncrease / 450)));
-
-        const breakdownChartData = [
-          { vector: 'Corridor Transit Risk', liveScore: transportScore, baseline: 45 },
-          { vector: 'Weather Risk (Open-Meteo)', liveScore: weatherScore, baseline: 40 },
-          { vector: 'Supplier Concentration', liveScore: supplierScore, baseline: 50 },
-          { vector: 'Tariff & Fuel Surcharge', liveScore: costScore, baseline: 55 },
-        ];
-
-        setResult({
-          score: apiResult.riskScore,
-          status: apiResult.riskCategory.toUpperCase(),
-          expectedDelay: apiResult.predictedDelayDays,
-          expectedCost: apiResult.predictedCostIncrease,
-          primaryDriver: form.scenario,
-          confidence: '98.2%',
-          recommendations: apiResult.recommendations,
-          breakdownData: breakdownChartData,
-          weatherScore,
-          transportScore,
-          supplierScore,
-          costScore,
-        });
-      } catch (err) {
-        console.warn('Real-time ML calculation error:', err);
-      }
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [
-    form.deliveryDistanceKm,
-    form.averageLeadTimeDays,
-    form.supplierCount,
-    form.transportMode,
-    form.scenario,
-    form.maxAdditionalBudget,
-    routeAlerts?.weatherRiskScore,
-  ]);
+      runMLCalc(weatherScore).catch((e) => console.warn('Recalc error:', e));
+    }, 500);
+  }, [runMLCalc, navWeatherScore]);
 
   const handleApplyWeatherScenario = () => {
     if (!routeAlerts) return;
@@ -218,69 +256,13 @@ export const NewAnalysis: React.FC = () => {
   const handleRunAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsRunning(true);
-
     try {
-      const isMonsoon = form.scenario.includes('Monsoon') || form.scenario.includes('Heavy Rainfall');
-      const isModerateRain = form.scenario.includes('Moderate Rain') || form.scenario.includes('Precipitation');
-      const isPort = form.scenario.includes('Port');
-      const isDiesel = form.scenario.includes('Diesel');
-      const isSupplier = form.scenario.includes('Supplier');
-
-      const liveWeatherScore = routeAlerts?.weatherRiskScore ?? (isMonsoon ? 85.0 : isModerateRain ? 45.0 : 20.0);
-      const portCongestion = isPort ? 8.8 : 2.0;
-      const geoRisk = isDiesel ? 45.0 : 15.0;
-      const supplierDep = isSupplier
-        ? 0.92
-        : Math.min(0.85, Math.max(0.15, 1.0 / Math.sqrt(Math.max(1, Number(form.supplierCount)))));
-      const shipmentWeight = isDiesel
-        ? 4000.0
-        : Math.min(10000.0, Math.max(50.0, Number(form.supplierCount) * 250.0));
-
-      const apiResult = await analyzeRisk({
-        supplierCount: Number(form.supplierCount),
-        primaryTransportMode: form.transportMode,
-        averageLeadTimeDays: Number(form.averageLeadTimeDays),
-        deliveryDistanceKm: Number(form.deliveryDistanceKm),
-        maxAcceptableDelayDays: 3,
-        maxAdditionalBudget: Number(form.maxAdditionalBudget),
-        supplierDependencyRatio: supplierDep,
-        weatherRiskScore: liveWeatherScore,
-        geopoliticalRiskScore: geoRisk,
-        portCongestionIndex: portCongestion,
-        shipmentWeightKg: shipmentWeight,
-      });
-
-      const supplierScore = Math.min(95, Math.max(15, Math.round(apiResult.riskScore * 0.85 + (Number(form.supplierCount) < 3 ? 18 : -5))));
-      const transportScore = Math.min(95, Math.max(20, Math.round(Number(form.deliveryDistanceKm) / 22 + (form.transportMode === 'Road' ? 24 : 12))));
-      const weatherScore = Math.min(95, Math.max(10, Math.round(liveWeatherScore)));
-      const costScore = Math.min(95, Math.max(15, Math.round(apiResult.predictedCostIncrease / 450)));
-
-      const breakdownChartData = [
-        { vector: 'Corridor Transit Risk', liveScore: transportScore, baseline: 45 },
-        { vector: 'Weather Risk (Open-Meteo)', liveScore: weatherScore, baseline: 40 },
-        { vector: 'Supplier Concentration', liveScore: supplierScore, baseline: 50 },
-        { vector: 'Tariff & Fuel Surcharge', liveScore: costScore, baseline: 55 },
-      ];
-
-      setIsRunning(false);
-      setResult({
-        score: apiResult.riskScore,
-        status: apiResult.riskCategory.toUpperCase(),
-        expectedDelay: apiResult.predictedDelayDays,
-        expectedCost: apiResult.predictedCostIncrease,
-        primaryDriver: form.scenario,
-        confidence: '98.2%',
-        recommendations: apiResult.recommendations,
-        breakdownData: breakdownChartData,
-        weatherScore,
-        transportScore,
-        supplierScore,
-        costScore,
-      });
-      showToast(`Dynamic ML Analysis completed! Risk Score: ${apiResult.riskScore}/100`);
+      await runMLCalc();
+      showToast('ML Analysis complete — results updated below.');
     } catch (err: any) {
-      setIsRunning(false);
       showToast(`ML Analysis Error: ${err?.message || 'Failed to analyze'}`);
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -289,7 +271,7 @@ export const NewAnalysis: React.FC = () => {
     : 'Standard Baseline Operations (Normal Clear Weather)';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 page-enter max-w-4xl mx-auto pb-12">
       {/* Page Header */}
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 mb-1">
@@ -701,7 +683,10 @@ export const NewAnalysis: React.FC = () => {
                     max="3000"
                     step="50"
                     value={form.deliveryDistanceKm}
-                    onChange={(e) => setForm({ ...form, deliveryDistanceKm: Number(e.target.value) })}
+                    onChange={(e) => {
+                      setForm({ ...form, deliveryDistanceKm: Number(e.target.value) });
+                      triggerRecalc();
+                    }}
                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-mono">
@@ -723,7 +708,10 @@ export const NewAnalysis: React.FC = () => {
                     max="60"
                     step="1"
                     value={form.averageLeadTimeDays}
-                    onChange={(e) => setForm({ ...form, averageLeadTimeDays: Number(e.target.value) })}
+                    onChange={(e) => {
+                      setForm({ ...form, averageLeadTimeDays: Number(e.target.value) });
+                      triggerRecalc();
+                    }}
                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-mono">

@@ -33,4 +33,8 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+*.db
+pgdata/
+catboost_info/
+
 

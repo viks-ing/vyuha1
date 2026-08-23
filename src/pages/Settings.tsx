@@ -43,7 +43,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
+    <div className="space-y-6 page-enter max-w-4xl mx-auto">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-slate-900">System Preferences & Settings</h2>

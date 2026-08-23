@@ -1,0 +1,19 @@
+{
+  "vyuha_version": "3.0-upgraded-delay",
+  "training_date": "2026-08-23T03:11:16.779014",
+  "primary_dataset": {
+    "name": "DataCo Smart Supply Chain Dataset",
+    "records": 10000,
+    "file": "dataco_supply_chain_delay.csv"
+  },
+  "models": {
+    "delay": {
+      "algorithm": "CatBoost",
+      "target": "delay_days",
+      "cv_r2": 0.4737,
+      "test_r2": 0.4746,
+      "test_mae": 0.9417,
+      "leakage_status": "CLEAN"
+    }
+  }
+}

@@ -164,6 +164,11 @@ export async function geocodeLocation(query: string): Promise<[number, number]> 
     return INDIAN_CITIES_COORDS[normalized];
   }
 
+  // In-memory cache for Nominatim responses
+  const _geocodeCache: Record<string, [number, number]> = (geocodeLocation as any)._cache ??
+    ((geocodeLocation as any)._cache = {});
+  if (_geocodeCache[normalized]) return _geocodeCache[normalized];
+
   try {
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=1`,
@@ -171,13 +176,16 @@ export async function geocodeLocation(query: string): Promise<[number, number]> 
         headers: {
           'User-Agent': 'VyuhaSupplyChainPlatform/1.0',
         },
+        signal: AbortSignal.timeout(2000),
       }
     );
 
     if (response.ok) {
       const data = await response.json();
       if (data && data.length > 0) {
-        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        _geocodeCache[normalized] = coords;
+        return coords;
       }
     }
   } catch (error) {
