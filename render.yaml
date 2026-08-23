@@ -1,0 +1,22 @@
+services:
+  # FastAPI Python ML Backend Web Service
+  - type: web
+    name: vyuha-ml-backend
+    env: python
+    region: singapore
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # React Vite Frontend Static Site
+  - type: web
+    name: vyuha-frontend
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
