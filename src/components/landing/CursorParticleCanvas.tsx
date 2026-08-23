@@ -53,12 +53,13 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
 
     const particles: PersistentParticle[] = [];
 
-    // Electric Blue (#0066FF) and Cyan Palette
+    // Vibrant Electric Blue (#0066FF), Cyan (#0ea5e9), and Sky Blue (#38bdf8) Palette
     const colors = [
       'rgba(0, 102, 255, ',
       'rgba(14, 165, 233, ',
       'rgba(56, 189, 248, ',
       'rgba(2, 132, 199, ',
+      'rgba(37, 99, 235, ',
     ];
 
     const resizeCanvas = () => {
@@ -70,20 +71,20 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
     window.addEventListener('resize', resizeCanvas);
 
     // Populate pre-existing particle network
-    const totalParticles = Math.min(75, Math.floor((width * height) / 9000));
+    const totalParticles = Math.min(85, Math.floor((width * height) / 8000));
     for (let i = 0; i < totalParticles; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
-      const size = Math.random() * 2.5 + 1.2;
-      const alpha = Math.random() * 0.4 + 0.3;
+      const size = Math.random() * 2.8 + 2.2;
+      const alpha = Math.random() * 0.35 + 0.65; // High base opacity (0.65 to 1.0)
 
       particles.push({
         x,
         y,
         originX: x,
         originY: y,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
         baseSize: size,
         size,
         baseAlpha: alpha,
@@ -129,7 +130,7 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      const interactionRadius = 160;
+      const interactionRadius = 175;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -153,20 +154,20 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
             
             // Soft repel / magnet attraction blend
             const angle = Math.atan2(dy, dx);
-            p.x -= Math.cos(angle) * force * 2.5;
-            p.y -= Math.sin(angle) * force * 2.5;
+            p.x -= Math.cos(angle) * force * 3.0;
+            p.y -= Math.sin(angle) * force * 3.0;
 
             // Brighten & scale up on hover proximity
-            p.size = p.baseSize * (1 + force * 0.8);
-            p.alpha = Math.min(1, p.baseAlpha + force * 0.5);
+            p.size = p.baseSize * (1 + force * 1.0);
+            p.alpha = Math.min(1, p.baseAlpha + force * 0.35);
 
             // Draw glowing laser line to cursor
-            const lineAlpha = force * 0.55;
+            const lineAlpha = force * 0.85;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(mouseRef.current.x, mouseRef.current.y);
             ctx.strokeStyle = `rgba(0, 102, 255, ${lineAlpha})`;
-            ctx.lineWidth = 1 + force * 0.8;
+            ctx.lineWidth = 1.2 + force * 1.2;
             ctx.stroke();
           } else {
             // Smooth reset to base size & alpha
@@ -184,10 +185,10 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
         ctx.fillStyle = `${p.color}${p.alpha})`;
         ctx.fill();
 
-        // Draw soft glow ring around particle
+        // Draw rich soft glow ring around particle
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${p.alpha * 0.15})`;
+        ctx.arc(p.x, p.y, p.size * 2.8, 0, Math.PI * 2);
+        ctx.fillStyle = `${p.color}${p.alpha * 0.35})`;
         ctx.fill();
 
         // Inter-particle network lines
@@ -197,13 +198,13 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
           const dy = p.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 100) {
-            const lineAlpha = (1 - dist / 100) * 0.22;
+          if (dist < 110) {
+            const lineAlpha = (1 - dist / 110) * 0.42;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.strokeStyle = `rgba(14, 165, 233, ${lineAlpha})`;
-            ctx.lineWidth = 0.8;
+            ctx.lineWidth = 1.0;
             ctx.stroke();
           }
         }
