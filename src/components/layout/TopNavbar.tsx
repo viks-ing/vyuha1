@@ -128,26 +128,34 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
           <span>Back</span>
         </button>
 
-        <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <span className="font-bold text-black">VYUHA</span>
-            <span>/</span>
-            <span className="text-[#0066FF] font-semibold">{page.category}</span>
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/vyuha-logo.png"
+            alt="VYUHA Logo"
+            className="h-8 w-auto object-contain hidden sm:block hover:scale-105 transition-transform cursor-pointer"
+            onClick={() => navigate('/dashboard')}
+          />
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <span className="font-bold text-black">VYUHA</span>
+              <span>/</span>
+              <span className="text-[#0066FF] font-semibold">{page.category}</span>
+            </div>
+            <h1 className="text-base font-bold text-slate-900 leading-none mt-0.5">
+              {page.title}
+            </h1>
           </div>
-          <h1 className="text-base font-bold text-slate-900 leading-none mt-0.5">
-            {page.title}
-          </h1>
         </div>
       </div>
 
       {/* Right Navbar Controls */}
-      <div className="flex items-center gap-3">
-        {/* Functional Search Bar */}
-        <div ref={searchRef} className="relative hidden md:block w-52 lg:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+      <div className="flex items-center gap-4">
+        {/* Prominent & Expanded Functional Search Bar */}
+        <div ref={searchRef} className="relative hidden md:block w-64 md:w-80 lg:w-[480px] xl:w-[580px]">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search risks, routes, features..."
+            placeholder="Search supply chain risks, routes, alerts, analytics..."
             value={searchQuery}
             onFocus={() => setShowSearchDropdown(true)}
             onChange={(e) => {
@@ -163,12 +171,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
                 setSearchQuery('');
               }
             }}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 transition-all"
+            className="w-full bg-slate-50/90 hover:bg-slate-50 border border-slate-200 focus:border-[#0066FF] rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/25 shadow-2xs transition-all"
           />
 
           {/* Live Search Results Popover */}
           {showSearchDropdown && searchQuery.trim().length > 0 && (
-            <div className="absolute left-0 right-0 mt-2 w-80 lg:w-96 rounded-xl bg-white border border-slate-200 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 max-h-96 overflow-y-auto">
+            <div className="absolute left-0 right-0 mt-2 w-full rounded-2xl bg-white border border-slate-200 shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 max-h-96 overflow-y-auto">
               {filteredPages.length === 0 && filteredAlerts.length === 0 ? (
                 <div className="p-4 text-center text-xs text-slate-500">
                   No matching results found for &quot;<span className="font-semibold text-slate-800">{searchQuery}</span>&quot;

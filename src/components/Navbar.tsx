@@ -18,16 +18,18 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-3 z-50 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
       <div className="w-full bg-white/90 backdrop-blur-md border border-[#0066FF]/15 rounded-[14px] shadow-lg shadow-[#0066FF]/5 px-4 sm:px-6 h-16 flex items-center justify-between transition-all">
         
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-[#0066FF] flex items-center justify-center shadow-sm shadow-[#0066FF]/30 group-hover:scale-105 transition-all">
-            <ShieldAlert className="w-5 h-5 text-white" />
-          </div>
+        {/* Brand Logo with Official VYUHA Image */}
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <img
+            src="/vyuha-logo.png"
+            alt="VYUHA Logo"
+            className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
           <div className="flex flex-col">
-            <span className="font-mono text-lg font-extrabold tracking-wider text-black">
+            <span className="font-sans text-lg font-extrabold tracking-wider text-black leading-none">
               VYUHA<span className="text-[#0066FF]">.AI</span>
             </span>
-            <span className="text-[8px] font-mono text-slate-500 tracking-widest uppercase font-bold">Supply Chain Risk ML</span>
+            <span className="text-[8px] font-sans text-slate-500 tracking-widest uppercase font-bold mt-0.5">Supply Chain Risk ML</span>
           </div>
         </Link>
 

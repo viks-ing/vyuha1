@@ -55,17 +55,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-slate-200 shrink-0">
+        {/* Brand Header with Official VYUHA Logo */}
+        <div className="h-16 px-5 flex items-center justify-between border-b border-slate-200 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center text-white font-black shadow-md shadow-sky-600/20">
-              <ShieldCheck className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/vyuha-logo.png"
+              alt="VYUHA Supply Intelligence Logo"
+              className="h-10 w-auto object-contain hover:scale-105 transition-transform"
+            />
             <div>
-              <span className="text-xl font-extrabold tracking-wider text-slate-900">
+              <span className="text-lg font-extrabold tracking-wider text-slate-900 leading-none block">
                 VYUHA
               </span>
-              <span className="block text-[10px] uppercase font-bold tracking-widest text-sky-600">
+              <span className="block text-[9px] uppercase font-bold tracking-widest text-[#0066FF] mt-0.5">
                 Supply Intelligence
               </span>
             </div>

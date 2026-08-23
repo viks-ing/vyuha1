@@ -30,24 +30,31 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 page-enter">
-      {/* Header Greeting Banner */}
+      {/* Header Greeting Banner with Official VYUHA Logo */}
       <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 p-6 md:p-8 rounded-3xl border border-slate-800 shadow-xl">
         {/* Subtle background glow effect */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
         
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky-400 bg-sky-950/50 px-3 py-1 rounded-full border border-sky-800/50 mb-3 animate-pulse-subtle">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-            <span>AI Risk Intelligence Feed Active</span>
+        <div className="relative z-10 flex items-start gap-4">
+          <img
+            src="/vyuha-logo.png"
+            alt="VYUHA Official Logo"
+            className="h-16 w-auto object-contain shrink-0 hidden sm:block drop-shadow-[0_0_15px_rgba(14,165,233,0.35)]"
+          />
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky-400 bg-sky-950/50 px-3 py-1 rounded-full border border-sky-800/50 mb-3 animate-pulse-subtle">
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span>AI Risk Intelligence Feed Active</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Welcome 👋
+            </h2>
+            <p className="text-sm text-slate-300 mt-2 font-medium">
+              Here's your current supply-chain risk overview for{' '}
+              <span className="text-sky-400 font-semibold">{company.info.companyName || 'Enterprise'}</span>.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Welcome 👋
-          </h2>
-          <p className="text-sm text-slate-300 mt-2 font-medium">
-            Here's your current supply-chain risk overview for{' '}
-            <span className="text-sky-400 font-semibold">{company.info.companyName || 'Enterprise'}</span>.
-          </p>
         </div>
 
         <div className="relative z-10 flex items-center gap-3 self-start md:self-auto">
