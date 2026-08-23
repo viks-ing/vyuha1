@@ -8,16 +8,12 @@ import { Features } from '../components/landing/Features';
 import { HowVyuhaWorks } from '../components/landing/HowVyuhaWorks';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/Footer';
-import { CursorParticleCanvas } from '../components/landing/CursorParticleCanvas';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-sky-500/20 selection:text-sky-900 relative page-enter overflow-x-hidden">
-      {/* Interactive Cursor Particle Animation Layer */}
-      <CursorParticleCanvas />
-
       <Navbar />
 
       {/* Floating Go Back button at top-left */}

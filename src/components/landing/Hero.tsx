@@ -2,12 +2,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { CursorParticleCanvas } from './CursorParticleCanvas';
 
 export const Hero: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <section id="product" className="relative min-h-[90vh] flex items-center justify-center pt-8 pb-16 px-4 sm:px-6 lg:px-8 bg-slate-50 overflow-hidden">
+      {/* Interactive Cursor Particle Animation Layer (Scoped to Hero Section) */}
+      <CursorParticleCanvas />
+
       {/* Glow Orbs */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-1/2 right-10 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />

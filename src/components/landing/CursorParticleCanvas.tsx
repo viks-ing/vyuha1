@@ -12,7 +12,11 @@ interface Particle {
   color: string;
 }
 
-export const CursorParticleCanvas: React.FC = () => {
+interface CursorParticleCanvasProps {
+  className?: string;
+}
+
+export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ className = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef<{ x: number; y: number; active: boolean }>({
     x: -1000,
@@ -28,13 +32,27 @@ export const CursorParticleCanvas: React.FC = () => {
     if (!ctx) return;
 
     let animId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+
+    const updateSize = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+      } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    };
+
+    updateSize();
+
+    let width = canvas.width;
+    let height = canvas.height;
 
     const particles: Particle[] = [];
     const ambientParticles: Particle[] = [];
 
-    // Colors matching Vyuha electric blue & cyan identity
+    // Colors matching Vyuha electric blue (#0066FF) & cyan identity
     const colors = [
       'rgba(0, 102, 255, ',
       'rgba(14, 165, 233, ',
@@ -43,14 +61,15 @@ export const CursorParticleCanvas: React.FC = () => {
     ];
 
     const resizeCanvas = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      updateSize();
+      width = canvas.width;
+      height = canvas.height;
     };
 
     window.addEventListener('resize', resizeCanvas);
 
     // Initialize background ambient nodes
-    const numAmbient = Math.min(35, Math.floor(width / 40));
+    const numAmbient = Math.min(30, Math.floor(width / 35));
     for (let i = 0; i < numAmbient; i++) {
       ambientParticles.push({
         x: Math.random() * width,
@@ -58,7 +77,7 @@ export const CursorParticleCanvas: React.FC = () => {
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.4,
         size: Math.random() * 2 + 1,
-        alpha: Math.random() * 0.4 + 0.2,
+        alpha: Math.random() * 0.45 + 0.25,
         maxLife: Infinity,
         life: 1,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -66,26 +85,40 @@ export const CursorParticleCanvas: React.FC = () => {
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
-      mouseRef.current.active = true;
+      const rect = canvas.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const relativeY = e.clientY - rect.top;
 
-      // Spawn burst of cursor trail particles
-      const count = 3;
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 1.5 + 0.5;
-        particles.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          size: Math.random() * 2.5 + 1.2,
-          alpha: 0.8,
-          maxLife: Math.random() * 45 + 35,
-          life: 0,
-          color: colors[Math.floor(Math.random() * colors.length)],
-        });
+      // Check if mouse is within the Hero section bounds
+      if (
+        relativeX >= 0 &&
+        relativeX <= rect.width &&
+        relativeY >= 0 &&
+        relativeY <= rect.height
+      ) {
+        mouseRef.current.x = relativeX;
+        mouseRef.current.y = relativeY;
+        mouseRef.current.active = true;
+
+        // Spawn burst of cursor trail particles
+        const count = 3;
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 1.6 + 0.6;
+          particles.push({
+            x: relativeX,
+            y: relativeY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: Math.random() * 2.5 + 1.2,
+            alpha: 0.85,
+            maxLife: Math.random() * 45 + 35,
+            life: 0,
+            color: colors[Math.floor(Math.random() * colors.length)],
+          });
+        }
+      } else {
+        mouseRef.current.active = false;
       }
     };
 
@@ -96,13 +129,18 @@ export const CursorParticleCanvas: React.FC = () => {
       }
     };
 
+    const handleMouseLeave = () => {
+      mouseRef.current.active = false;
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Render Ambient Constellation Network Nodes
+      // Render Ambient Constellation Network Nodes inside Hero section
       for (let i = 0; i < ambientParticles.length; i++) {
         const p = ambientParticles[i];
         p.x += p.vx;
@@ -124,8 +162,8 @@ export const CursorParticleCanvas: React.FC = () => {
           const dy = mouseRef.current.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 130) {
-            const lineAlpha = (1 - dist / 130) * 0.35;
+          if (dist < 140) {
+            const lineAlpha = (1 - dist / 140) * 0.4;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(mouseRef.current.x, mouseRef.current.y);
@@ -142,8 +180,8 @@ export const CursorParticleCanvas: React.FC = () => {
           const dy = p.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 90) {
-            const lineAlpha = (1 - dist / 90) * 0.15;
+          if (dist < 95) {
+            const lineAlpha = (1 - dist / 95) * 0.18;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
@@ -179,7 +217,7 @@ export const CursorParticleCanvas: React.FC = () => {
         // Subtle glow aura around trail particles
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${currentAlpha * 0.15})`;
+        ctx.fillStyle = `${p.color}${currentAlpha * 0.18})`;
         ctx.fill();
       }
 
@@ -192,6 +230,7 @@ export const CursorParticleCanvas: React.FC = () => {
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(animId);
     };
   }, []);
@@ -199,7 +238,7 @@ export const CursorParticleCanvas: React.FC = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700"
+      className={`absolute inset-0 pointer-events-none z-0 ${className}`}
     />
   );
 };
