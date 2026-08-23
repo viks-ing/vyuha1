@@ -78,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
             <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
               Core Platform
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-1.5">
               {mainNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -88,16 +88,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
                     onClick={onCloseMobile}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all group relative',
+                        'flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-sm font-semibold transition-all group relative border',
                         isActive
-                          ? 'bg-sky-50 text-sky-700 font-semibold border border-sky-200 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'bg-[#0066FF]/6 text-black border-[#0066FF] shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)]'
+                          : 'bg-white/60 text-black border-[#0066FF]/25 hover:border-[#0066FF] hover:bg-[#0066FF]/5 hover:shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)] hover:-translate-y-0.5'
                       )
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <Icon className={cn('w-4 h-4 transition-colors', isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600')} />
+                        <Icon className={cn('w-4 h-4 transition-colors', isActive ? 'text-[#0066FF]' : 'text-black group-hover:text-[#0066FF]')} />
                         <span className="flex-1">{item.label}</span>
                         {isActive && <ChevronRight className="w-3.5 h-3.5 text-sky-600" />}
                       </>
