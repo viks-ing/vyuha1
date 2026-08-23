@@ -25,12 +25,10 @@ export const Onboarding: React.FC = () => {
     completeOnboarding,
   } = useCompany();
 
-  // Ensure onboarding step is at least 1 when visiting onboarding page
+  // Force wizard to start at Step 1 when entering onboarding
   useEffect(() => {
-    if (!company.onboardingStep || company.onboardingStep < 1) {
-      setOnboardingStep(1);
-    }
-  }, [company.onboardingStep, setOnboardingStep]);
+    setOnboardingStep(1);
+  }, []);
 
   const handleStep1Next = (data: CompanyInformationData) => {
     updateCompanyInfo(data);
@@ -131,8 +129,11 @@ export const Onboarding: React.FC = () => {
           </p>
         </div>
 
-        {/* Step Progress Indicator */}
-        <OnboardingProgress currentStep={company.onboardingStep} />
+        {/* Step Progress Indicator (Clickable to switch steps) */}
+        <OnboardingProgress
+          currentStep={company.onboardingStep || 1}
+          onStepClick={(stepNum) => setOnboardingStep(stepNum)}
+        />
 
         {/* Step Forms Switcher */}
         <div className="mt-6">
