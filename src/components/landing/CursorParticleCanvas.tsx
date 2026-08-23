@@ -1,14 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 
-interface Particle {
+interface PersistentParticle {
   x: number;
   y: number;
+  originX: number;
+  originY: number;
   vx: number;
   vy: number;
+  baseSize: number;
   size: number;
+  baseAlpha: number;
   alpha: number;
-  maxLife: number;
-  life: number;
   color: string;
 }
 
@@ -49,10 +51,9 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
     let width = canvas.width;
     let height = canvas.height;
 
-    const particles: Particle[] = [];
-    const ambientParticles: Particle[] = [];
+    const particles: PersistentParticle[] = [];
 
-    // Colors matching Vyuha electric blue (#0066FF) & cyan identity
+    // Electric Blue (#0066FF) and Cyan Palette
     const colors = [
       'rgba(0, 102, 255, ',
       'rgba(14, 165, 233, ',
@@ -68,18 +69,25 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
 
     window.addEventListener('resize', resizeCanvas);
 
-    // Initialize background ambient nodes
-    const numAmbient = Math.min(30, Math.floor(width / 35));
-    for (let i = 0; i < numAmbient; i++) {
-      ambientParticles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        size: Math.random() * 2 + 1,
-        alpha: Math.random() * 0.45 + 0.25,
-        maxLife: Infinity,
-        life: 1,
+    // Populate pre-existing particle network
+    const totalParticles = Math.min(75, Math.floor((width * height) / 9000));
+    for (let i = 0; i < totalParticles; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 2.5 + 1.2;
+      const alpha = Math.random() * 0.4 + 0.3;
+
+      particles.push({
+        x,
+        y,
+        originX: x,
+        originY: y,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        baseSize: size,
+        size,
+        baseAlpha: alpha,
+        alpha,
         color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
@@ -89,7 +97,6 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
       const relativeX = e.clientX - rect.left;
       const relativeY = e.clientY - rect.top;
 
-      // Check if mouse is within the Hero section bounds
       if (
         relativeX >= 0 &&
         relativeX <= rect.width &&
@@ -99,24 +106,6 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
         mouseRef.current.x = relativeX;
         mouseRef.current.y = relativeY;
         mouseRef.current.active = true;
-
-        // Spawn burst of cursor trail particles
-        const count = 3;
-        for (let i = 0; i < count; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 1.6 + 0.6;
-          particles.push({
-            x: relativeX,
-            y: relativeY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            size: Math.random() * 2.5 + 1.2,
-            alpha: 0.85,
-            maxLife: Math.random() * 45 + 35,
-            life: 0,
-            color: colors[Math.floor(Math.random() * colors.length)],
-          });
-        }
       } else {
         mouseRef.current.active = false;
       }
@@ -140,48 +129,76 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Render Ambient Constellation Network Nodes inside Hero section
-      for (let i = 0; i < ambientParticles.length; i++) {
-        const p = ambientParticles[i];
+      const interactionRadius = 160;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // Autonomous floating motion
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
+        // Bounce off container boundaries
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${p.alpha})`;
-        ctx.fill();
-
-        // Connect ambient nodes to cursor if close
+        // Interactive behavior when cursor is nearby
         if (mouseRef.current.active) {
           const dx = mouseRef.current.x - p.x;
           const dy = mouseRef.current.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 140) {
-            const lineAlpha = (1 - dist / 140) * 0.4;
+          if (dist < interactionRadius) {
+            const force = (1 - dist / interactionRadius);
+            
+            // Soft repel / magnet attraction blend
+            const angle = Math.atan2(dy, dx);
+            p.x -= Math.cos(angle) * force * 2.5;
+            p.y -= Math.sin(angle) * force * 2.5;
+
+            // Brighten & scale up on hover proximity
+            p.size = p.baseSize * (1 + force * 0.8);
+            p.alpha = Math.min(1, p.baseAlpha + force * 0.5);
+
+            // Draw glowing laser line to cursor
+            const lineAlpha = force * 0.55;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(mouseRef.current.x, mouseRef.current.y);
             ctx.strokeStyle = `rgba(0, 102, 255, ${lineAlpha})`;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1 + force * 0.8;
             ctx.stroke();
+          } else {
+            // Smooth reset to base size & alpha
+            p.size += (p.baseSize - p.size) * 0.1;
+            p.alpha += (p.baseAlpha - p.alpha) * 0.1;
           }
+        } else {
+          p.size += (p.baseSize - p.size) * 0.1;
+          p.alpha += (p.baseAlpha - p.alpha) * 0.1;
         }
 
-        // Connect nearby ambient nodes to each other
-        for (let j = i + 1; j < ambientParticles.length; j++) {
-          const p2 = ambientParticles[j];
+        // Draw individual particle dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `${p.color}${p.alpha})`;
+        ctx.fill();
+
+        // Draw soft glow ring around particle
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = `${p.color}${p.alpha * 0.15})`;
+        ctx.fill();
+
+        // Inter-particle network lines
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
           const dx = p.x - p2.x;
           const dy = p.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 95) {
-            const lineAlpha = (1 - dist / 95) * 0.18;
+          if (dist < 100) {
+            const lineAlpha = (1 - dist / 100) * 0.22;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
@@ -190,35 +207,6 @@ export const CursorParticleCanvas: React.FC<CursorParticleCanvasProps> = ({ clas
             ctx.stroke();
           }
         }
-      }
-
-      // Render Dynamic Cursor Trail Particles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.life++;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.96;
-        p.vy *= 0.96;
-
-        const lifeRatio = p.life / p.maxLife;
-        const currentAlpha = Math.max(0, p.alpha * (1 - lifeRatio));
-
-        if (p.life >= p.maxLife || currentAlpha <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (1 - lifeRatio * 0.3), 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${currentAlpha})`;
-        ctx.fill();
-
-        // Subtle glow aura around trail particles
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${currentAlpha * 0.18})`;
-        ctx.fill();
       }
 
       animId = requestAnimationFrame(render);
