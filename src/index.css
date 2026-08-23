@@ -50,6 +50,35 @@ body {
   background-attachment: fixed;
 }
 
+/* Vyuha #0066FF Navigation Pill & Glow Utility System */
+.nav-item-pill {
+  color: #000000 !important;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 102, 255, 0.25) !important;
+  border-radius: 10px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease, transform 200ms ease;
+}
+
+.nav-item-pill:hover {
+  color: #000000 !important;
+  border-color: #0066FF !important;
+  background-color: rgba(0, 102, 255, 0.05) !important;
+  box-shadow: 0 0 8px rgba(0, 102, 255, 0.35), 0 0 18px rgba(0, 102, 255, 0.18) !important;
+  transform: translateY(-1px);
+}
+
+.nav-item-pill.active,
+.nav-item-pill:active {
+  color: #000000 !important;
+  border-color: #0066FF !important;
+  background-color: rgba(0, 102, 255, 0.06) !important;
+  box-shadow: 0 0 8px rgba(0, 102, 255, 0.35), 0 0 18px rgba(0, 102, 255, 0.18) !important;
+}
+
+.primary-btn-glow:hover {
+  box-shadow: 0 0 10px rgba(0, 102, 255, 0.35), 0 0 22px rgba(0, 102, 255, 0.15) !important;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

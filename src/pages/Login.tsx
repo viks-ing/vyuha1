@@ -41,8 +41,8 @@ export const LoginPage: React.FC = () => {
 
     const result = await login({ email, password });
     if (result) {
-      const userFullName = result.user?.fullName || result.session?.user?.user_metadata?.full_name;
-      const userEmail = result.user?.email || result.session?.user?.email || email;
+      const userFullName = result.user?.fullName;
+      const userEmail = result.user?.email || email;
 
       updateUserProfile({
         name: userFullName || (userEmail ? userEmail.split('@')[0] : 'User'),
@@ -50,15 +50,11 @@ export const LoginPage: React.FC = () => {
       });
 
       setTimeout(() => {
-<<<<<<< HEAD
         if (company.isOnboarded || company.info?.companyName) {
           navigate('/dashboard');
         } else {
           navigate('/onboarding');
         }
-      }, 600);
-=======
-        navigate('/onboarding');
       }, 600);
     }
   };
@@ -66,11 +62,9 @@ export const LoginPage: React.FC = () => {
   const handleDirectSandboxLogin = async (demoEmail = 'enterprise@vyuha.ai', demoPass = 'vyuha1234') => {
     const result = await login({ email: demoEmail, password: demoPass });
     if (result) {
-      resetOnboarding();
       setTimeout(() => {
         navigate('/onboarding');
       }, 400);
->>>>>>> 8af9088 (feat: Connect Vyuha to live CatBoost ML models, real-time weather APIs, and PostgreSQL/SQLite database persistence)
     }
   };
 

@@ -109,12 +109,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
   const criticalCount = alerts.filter((a: { severity: string }) => a.severity === 'Critical' || a.severity === 'High').length;
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-30 px-4 lg:px-8 flex items-center justify-between shadow-xs">
+    <header className="h-16 border-b border-[#0066FF]/15 bg-white/90 backdrop-blur-xl sticky top-0 z-30 px-4 lg:px-8 flex items-center justify-between shadow-sm shadow-[#0066FF]/5">
       {/* Left: Mobile Toggle & Page Title / Breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleMobileSidebar}
-          className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 lg:hidden border border-slate-200"
+          className="p-2 text-black hover:text-black rounded-[10px] bg-white border border-[#0066FF]/25 hover:border-[#0066FF] hover:shadow-[0_0_8px_rgba(0,102,255,0.35)] transition-all lg:hidden"
           aria-label="Open Mobile Menu"
         >
           <Menu className="w-5 h-5" />
@@ -122,17 +122,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileSidebar }) =
 
         <button
           onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-sky-600 bg-slate-50 hover:bg-sky-50/50 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-sky-200 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer mr-1"
+          className="group inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-[#0066FF]/5 px-3 py-1.5 rounded-[10px] border border-[#0066FF]/25 hover:border-[#0066FF] hover:shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)] hover:-translate-y-0.5 transition-all duration-200 active:scale-95 cursor-pointer mr-1"
         >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5 text-black" />
           <span>Back</span>
         </button>
 
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <span>VYUHA</span>
+            <span className="font-bold text-black">VYUHA</span>
             <span>/</span>
-            <span className="text-sky-600 font-semibold">{page.category}</span>
+            <span className="text-[#0066FF] font-semibold">{page.category}</span>
           </div>
           <h1 className="text-base font-bold text-slate-900 leading-none mt-0.5">
             {page.title}

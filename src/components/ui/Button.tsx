@@ -12,13 +12,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, disabled, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] select-none';
+      'inline-flex items-center justify-center font-semibold rounded-[10px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/40 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] select-none';
 
     const variants = {
-      primary: 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-md shadow-sky-600/20 border border-sky-500/30',
-      secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200',
-      outline: 'border border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-100',
-      ghost: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
+      primary: 'bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold shadow-md border border-[#0066FF] primary-btn-glow',
+      secondary: 'bg-white text-black border border-[#0066FF]/25 hover:border-[#0066FF] hover:bg-[#0066FF]/5 hover:shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)] hover:-translate-y-0.5',
+      outline: 'bg-white/80 text-black border border-[#0066FF]/25 hover:border-[#0066FF] hover:bg-[#0066FF]/5 hover:shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)] hover:-translate-y-0.5',
+      ghost: 'bg-transparent text-black border border-[#0066FF]/20 hover:border-[#0066FF] hover:bg-[#0066FF]/5 hover:shadow-[0_0_8px_rgba(0,102,255,0.35),0_0_18px_rgba(0,102,255,0.18)] hover:-translate-y-0.5',
       danger: 'bg-red-600 hover:bg-red-500 text-white shadow-sm border border-red-500/40',
       success: 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/40',
     };
